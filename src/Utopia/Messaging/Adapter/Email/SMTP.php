@@ -75,14 +75,6 @@ class SMTP extends EmailAdapter
         $mail->AltBody = \strip_tags($mail->AltBody);
         $mail->AltBody = \trim($mail->AltBody);
 
-        if (empty($message->getTo())) {
-            if (empty($message->getBCC()) && empty($message->getDefaultRecipient())) {
-                throw new \Exception('Email requires either "to" recipients or both BCC and a default recipient configurations');
-            }
-
-            $mail->addAddress($message->getDefaultRecipient());
-        }
-
         foreach ($message->getTo() as $to) {
             $mail->addAddress($to);
         }

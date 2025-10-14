@@ -19,7 +19,6 @@ class Email implements Message
      * @param  string|null  $replyToEmail The email address of the reply to.
      * @param  array<Attachment>|null  $attachments The attachments of the email.
      * @param  bool  $html Whether the message is HTML or not.
-     * @param  string|null  $defaultRecipient The default recipient of the email.
      *
      * @throws \InvalidArgumentException
      */
@@ -35,7 +34,6 @@ class Email implements Message
         private ?array $bcc = null,
         private ?array $attachments = null,
         private bool $html = false,
-        private ?string $defaultRecipient = null
     ) {
         if (\is_null($this->replyToName)) {
             $this->replyToName = $this->fromName;
@@ -127,10 +125,5 @@ class Email implements Message
     public function isHtml(): bool
     {
         return $this->html;
-    }
-
-    public function getDefaultRecipient(): ?string
-    {
-        return $this->defaultRecipient;
     }
 }

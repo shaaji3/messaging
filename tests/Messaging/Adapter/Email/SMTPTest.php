@@ -85,7 +85,6 @@ class SMTPTest extends Base
             port: 1025,
         );
 
-        $defaultRecipient = 'tester@localhost.test';
         $subject = 'Test Subject';
         $content = 'Test Content';
         $fromName = 'Test Sender';
@@ -104,7 +103,6 @@ class SMTPTest extends Base
             fromName: $fromName,
             fromEmail: $fromEmail,
             bcc: $bcc,
-            defaultRecipient: $defaultRecipient,
         );
 
         $response = $sender->send($message);
