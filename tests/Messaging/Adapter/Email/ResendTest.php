@@ -14,12 +14,12 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $sender = new Resend($key);
 
-        $to = \getenv('TEST_EMAIL');
+        $to = \getenv('RESEND_TEST_EMAIL');
         $subject = 'Test Subject';
         $content = 'Test Content';
-        $fromEmail = \getenv('TEST_FROM_EMAIL');
-        $cc = [['email' => \getenv('TEST_CC_EMAIL')]];
-        $bcc = [['name' => \getenv('TEST_BCC_NAME'), 'email' => \getenv('TEST_BCC_EMAIL')]];
+        $fromEmail = \getenv('RESEND_TEST_EMAIL');
+        $cc = [['email' => \getenv('RESEND_TEST_EMAIL')]];
+        $bcc = [['name' => 'Test BCC', 'email' => \getenv('RESEND_TEST_EMAIL')]];
 
         $message = new Email(
             to: [$to],
@@ -41,10 +41,10 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $sender = new Resend($key);
 
-        $to = \getenv('TEST_EMAIL');
+        $to = \getenv('RESEND_TEST_EMAIL');
         $subject = 'Test HTML Subject';
         $content = '<h1>Test HTML Content</h1><p>This is a test email with HTML content.</p>';
-        $fromEmail = \getenv('TEST_FROM_EMAIL');
+        $fromEmail = \getenv('RESEND_TEST_EMAIL');
 
         $message = new Email(
             to: [$to],
@@ -65,11 +65,11 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $sender = new Resend($key);
 
-        $to = \getenv('TEST_EMAIL');
+        $to = \getenv('RESEND_TEST_EMAIL');
         $subject = 'Test Reply-To Subject';
         $content = 'Test Content with Reply-To';
-        $fromEmail = \getenv('TEST_FROM_EMAIL');
-        $replyToEmail = \getenv('TEST_CC_EMAIL');
+        $fromEmail = \getenv('RESEND_TEST_EMAIL');
+        $replyToEmail = \getenv('RESEND_TEST_EMAIL');
 
         $message = new Email(
             to: [$to],
@@ -91,11 +91,11 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $sender = new Resend($key);
 
-        $to1 = \getenv('TEST_EMAIL');
-        $to2 = \getenv('TEST_CC_EMAIL');
+        $to1 = \getenv('RESEND_TEST_EMAIL');
+        $to2 = \getenv('RESEND_TEST_EMAIL');
         $subject = 'Test Batch Subject';
         $content = 'Test Batch Content';
-        $fromEmail = \getenv('TEST_FROM_EMAIL');
+        $fromEmail = \getenv('RESEND_TEST_EMAIL');
 
         $message = new Email(
             to: [$to1, $to2],
@@ -122,10 +122,10 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $sender = new Resend($key);
 
-        $to = \getenv('TEST_EMAIL');
+        $to = \getenv('RESEND_TEST_EMAIL');
         $subject = 'Test Subject';
         $content = 'Test Content';
-        $fromEmail = \getenv('TEST_FROM_EMAIL');
+        $fromEmail = \getenv('RESEND_TEST_EMAIL');
 
         $message = new Email(
             to: [$to],

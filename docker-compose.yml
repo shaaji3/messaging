@@ -11,6 +11,7 @@ services:
       - MAILGUN_DOMAIN
       - SENDGRID_API_KEY
       - RESEND_API_KEY
+      - RESEND_TEST_EMAIL
       - FCM_SERVICE_ACCOUNT_JSON
       - FCM_TO
       - TWILIO_ACCOUNT_SID
