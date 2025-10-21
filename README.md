@@ -23,6 +23,7 @@ composer require utopia-php/messaging
 use \Utopia\Messaging\Messages\Email;
 use \Utopia\Messaging\Adapter\Email\SendGrid;
 use \Utopia\Messaging\Adapter\Email\Mailgun;
+use \Utopia\Messaging\Adapter\Email\Resend;
 
 $message = new Email(
     to: ['team@appwrite.io'],
@@ -34,6 +35,9 @@ $messaging = new Sendgrid('YOUR_API_KEY');
 $messaging->send($message);
 
 $messaging = new Mailgun('YOUR_API_KEY', 'YOUR_DOMAIN');
+$messaging->send($message);
+
+$messaging = new Resend('YOUR_API_KEY');
 $messaging->send($message);
 ```
 
@@ -82,6 +86,7 @@ $messaging->send($message);
 ### Email
 - [x] [SendGrid](https://sendgrid.com/)
 - [x] [Mailgun](https://www.mailgun.com/)
+- [x] [Resend](https://resend.com/)
 - [ ] [Mailjet](https://www.mailjet.com/)
 - [ ] [Mailchimp](https://www.mailchimp.com/)
 - [ ] [Postmark](https://postmarkapp.com/)

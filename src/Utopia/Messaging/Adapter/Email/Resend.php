@@ -1,0 +1,167 @@
+<?php
+
+namespace Utopia\Messaging\Adapter\Email;
+
+use Utopia\Messaging\Adapter\Email as EmailAdapter;
+use Utopia\Messaging\Messages\Email as EmailMessage;
+use Utopia\Messaging\Response;
+
+class Resend extends EmailAdapter
+{
+    protected const NAME = 'Resend';
+
+    /**
+     * @param  string  $apiKey  Your Resend API key to authenticate with the API.
+     */
+    public function __construct(
+        private string $apiKey
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return static::NAME;
+    }
+
+    public function getMaxMessagesPerRequest(): int
+    {
+        return 100;
+    }
+
+    /**
+     * Uses Resend's batch sending API to send multiple emails at once.
+     *
+     * @link https://resend.com/docs/api-reference/emails/send-batch-emails
+     */
+    protected function process(EmailMessage $message): array
+    {
+        // Resend doesn't support attachments yet
+        if (! \is_null($message->getAttachments()) && ! empty($message->getAttachments())) {
+            throw new \Exception('Resend does not support attachments at this time');
+        }
+
+        $response = new Response($this->getType());
+
+        $emails = [];
+        foreach ($message->getTo() as $to) {
+            $email = [
+                'from' => $message->getFromName()
+                    ? "{$message->getFromName()} <{$message->getFromEmail()}>"
+                    : $message->getFromEmail(),
+                'to' => [$to],
+                'subject' => $message->getSubject(),
+            ];
+
+            if ($message->isHtml()) {
+                $email['html'] = $message->getContent();
+            } else {
+                $email['text'] = $message->getContent();
+            }
+
+            if (! empty($message->getReplyToEmail())) {
+                $email['reply_to'] = $message->getReplyToName()
+                    ? ["{$message->getReplyToName()} <{$message->getReplyToEmail()}>"]
+                    : [$message->getReplyToEmail()];
+            }
+
+            if (! \is_null($message->getCC()) && ! empty($message->getCC())) {
+                $ccList = [];
+                foreach ($message->getCC() as $cc) {
+                    if (! empty($cc['email'])) {
+                        $ccList[] = ! empty($cc['name'])
+                            ? "{$cc['name']} <{$cc['email']}>"
+                            : $cc['email'];
+                    }
+                }
+                if (! empty($ccList)) {
+                    $email['cc'] = $ccList;
+                }
+            }
+
+            if (! \is_null($message->getBCC()) && ! empty($message->getBCC())) {
+                $bccList = [];
+                foreach ($message->getBCC() as $bcc) {
+                    if (! empty($bcc['email'])) {
+                        $bccList[] = ! empty($bcc['name'])
+                            ? "{$bcc['name']} <{$bcc['email']}>"
+                            : $bcc['email'];
+                    }
+                }
+                if (! empty($bccList)) {
+                    $email['bcc'] = $bccList;
+                }
+            }
+
+            $emails[] = $email;
+        }
+
+        $headers = [
+            'Authorization: Bearer '.$this->apiKey,
+            'Content-Type: application/json',
+        ];
+
+        $result = $this->request(
+            method: 'POST',
+            url: 'https://api.resend.com/emails/batch',
+            headers: $headers,
+            body: $emails, // @phpstan-ignore-line
+        );
+
+        $statusCode = $result['statusCode'];
+
+        if ($statusCode === 200) {
+            $responseData = $result['response'];
+
+            if (isset($responseData['errors']) && ! empty($responseData['errors'])) {
+                $failedIndices = [];
+                foreach ($responseData['errors'] as $error) {
+                    $failedIndices[$error['index']] = $error['message'];
+                }
+
+                foreach ($message->getTo() as $index => $to) {
+                    if (isset($failedIndices[$index])) {
+                        $response->addResult($to, $failedIndices[$index]);
+                    } else {
+                        $response->addResult($to);
+                    }
+                }
+
+                $successCount = \count($message->getTo()) - \count($failedIndices);
+                $response->setDeliveredTo($successCount);
+            } else {
+                $response->setDeliveredTo(\count($message->getTo()));
+                foreach ($message->getTo() as $to) {
+                    $response->addResult($to);
+                }
+            }
+        } elseif ($statusCode >= 400 && $statusCode < 500) {
+            $errorMessage = 'Unknown error';
+
+            if (\is_string($result['response'])) {
+                $errorMessage = $result['response'];
+            } elseif (isset($result['response']['message'])) {
+                $errorMessage = $result['response']['message'];
+            } elseif (isset($result['response']['error'])) {
+                $errorMessage = $result['response']['error'];
+            }
+
+            foreach ($message->getTo() as $to) {
+                $response->addResult($to, $errorMessage);
+            }
+        } elseif ($statusCode >= 500) {
+            $errorMessage = 'Server error';
+
+            if (\is_string($result['response'])) {
+                $errorMessage = $result['response'];
+            } elseif (isset($result['response']['message'])) {
+                $errorMessage = $result['response']['message'];
+            }
+
+            foreach ($message->getTo() as $to) {
+                $response->addResult($to, $errorMessage);
+            }
+        }
+
+        return $response->toArray();
+    }
+}
