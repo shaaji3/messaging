@@ -9,17 +9,25 @@ use Utopia\Tests\Adapter\Base;
 
 class ResendTest extends Base
 {
+    private Resend $sender;
+    private string $testEmail;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $key = \getenv('RESEND_API_KEY');
+        $this->sender = new Resend($key);
+        $this->testEmail = \getenv('RESEND_TEST_EMAIL');
+    }
+
     public function testSendEmail(): void
     {
-        $key = \getenv('RESEND_API_KEY');
-        $sender = new Resend($key);
-
-        $to = \getenv('RESEND_TEST_EMAIL');
+        $to = $this->testEmail;
         $subject = 'Test Subject';
         $content = 'Test Content';
-        $fromEmail = \getenv('RESEND_TEST_EMAIL');
-        $cc = [['email' => \getenv('RESEND_TEST_EMAIL')]];
-        $bcc = [['name' => 'Test BCC', 'email' => \getenv('RESEND_TEST_EMAIL')]];
+        $fromEmail = $this->testEmail;
+        $cc = [['email' => $this->testEmail]];
+        $bcc = [['name' => 'Test BCC', 'email' => $this->testEmail]];
 
         $message = new Email(
             to: [$to],
@@ -31,20 +39,17 @@ class ResendTest extends Base
             bcc: $bcc,
         );
 
-        $response = $sender->send($message);
+        $response = $this->sender->send($message);
 
         $this->assertResponse($response);
     }
 
     public function testSendEmailWithHtml(): void
     {
-        $key = \getenv('RESEND_API_KEY');
-        $sender = new Resend($key);
-
-        $to = \getenv('RESEND_TEST_EMAIL');
+        $to = $this->testEmail;
         $subject = 'Test HTML Subject';
         $content = '<h1>Test HTML Content</h1><p>This is a test email with HTML content.</p>';
-        $fromEmail = \getenv('RESEND_TEST_EMAIL');
+        $fromEmail = $this->testEmail;
 
         $message = new Email(
             to: [$to],
@@ -55,21 +60,18 @@ class ResendTest extends Base
             html: true,
         );
 
-        $response = $sender->send($message);
+        $response = $this->sender->send($message);
 
         $this->assertResponse($response);
     }
 
     public function testSendEmailWithReplyTo(): void
     {
-        $key = \getenv('RESEND_API_KEY');
-        $sender = new Resend($key);
-
-        $to = \getenv('RESEND_TEST_EMAIL');
+        $to = $this->testEmail;
         $subject = 'Test Reply-To Subject';
         $content = 'Test Content with Reply-To';
-        $fromEmail = \getenv('RESEND_TEST_EMAIL');
-        $replyToEmail = \getenv('RESEND_TEST_EMAIL');
+        $fromEmail = $this->testEmail;
+        $replyToEmail = $this->testEmail;
 
         $message = new Email(
             to: [$to],
@@ -81,21 +83,18 @@ class ResendTest extends Base
             replyToEmail: $replyToEmail,
         );
 
-        $response = $sender->send($message);
+        $response = $this->sender->send($message);
 
         $this->assertResponse($response);
     }
 
     public function testSendMultipleEmails(): void
     {
-        $key = \getenv('RESEND_API_KEY');
-        $sender = new Resend($key);
-
-        $to1 = \getenv('RESEND_TEST_EMAIL');
-        $to2 = \getenv('RESEND_TEST_EMAIL');
+        $to1 = $this->testEmail;
+        $to2 = $this->testEmail;
         $subject = 'Test Batch Subject';
         $content = 'Test Batch Content';
-        $fromEmail = \getenv('RESEND_TEST_EMAIL');
+        $fromEmail = $this->testEmail;
 
         $message = new Email(
             to: [$to1, $to2],
@@ -105,7 +104,7 @@ class ResendTest extends Base
             fromEmail: $fromEmail,
         );
 
-        $response = $sender->send($message);
+        $response = $this->sender->send($message);
 
         $this->assertEquals(2, $response['deliveredTo'], \var_export($response, true));
         $this->assertEquals('', $response['results'][0]['error'], \var_export($response, true));
@@ -119,13 +118,10 @@ class ResendTest extends Base
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Resend does not support attachments at this time');
 
-        $key = \getenv('RESEND_API_KEY');
-        $sender = new Resend($key);
-
-        $to = \getenv('RESEND_TEST_EMAIL');
+        $to = $this->testEmail;
         $subject = 'Test Subject';
         $content = 'Test Content';
-        $fromEmail = \getenv('RESEND_TEST_EMAIL');
+        $fromEmail = $this->testEmail;
 
         $message = new Email(
             to: [$to],
@@ -140,6 +136,6 @@ class ResendTest extends Base
             )],
         );
 
-        $sender->send($message);
+        $this->sender->send($message);
     }
 }
