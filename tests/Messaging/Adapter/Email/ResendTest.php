@@ -18,6 +18,8 @@ class ResendTest extends Base
         $key = \getenv('RESEND_API_KEY');
         $this->sender = new Resend($key);
         $this->testEmail = \getenv('RESEND_TEST_EMAIL');
+
+        sleep(2);
     }
 
     public function testSendEmail(): void
