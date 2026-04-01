@@ -35,9 +35,42 @@ class Resend extends EmailAdapter
      */
     protected function process(EmailMessage $message): array
     {
-        // Resend doesn't support attachments yet
+        $attachments = [];
         if (! \is_null($message->getAttachments()) && ! empty($message->getAttachments())) {
-            throw new \Exception('Resend does not support attachments at this time');
+            $size = 0;
+            foreach ($message->getAttachments() as $attachment) {
+                if ($attachment->getContent() !== null) {
+                    $size += \strlen($attachment->getContent());
+                } else {
+                    $fileSize = \filesize($attachment->getPath());
+                    if ($fileSize === false) {
+                        throw new \Exception('Failed to read attachment file: '.$attachment->getPath());
+                    }
+                    $size += $fileSize;
+                }
+            }
+
+            if ($size > self::MAX_ATTACHMENT_BYTES) {
+                throw new \Exception('Total attachment size exceeds '.self::MAX_ATTACHMENT_BYTES.' bytes');
+            }
+
+            foreach ($message->getAttachments() as $attachment) {
+                if ($attachment->getContent() !== null) {
+                    $content = \base64_encode($attachment->getContent());
+                } else {
+                    $data = \file_get_contents($attachment->getPath());
+                    if ($data === false) {
+                        throw new \Exception('Failed to read attachment file: '.$attachment->getPath());
+                    }
+                    $content = \base64_encode($data);
+                }
+
+                $attachments[] = [
+                    'filename' => $attachment->getName(),
+                    'content' => $content,
+                    'content_type' => $attachment->getType(),
+                ];
+            }
         }
 
         $response = new Response($this->getType());
@@ -76,6 +109,10 @@ class Resend extends EmailAdapter
                 if (! empty($ccList)) {
                     $email['cc'] = $ccList;
                 }
+            }
+
+            if (! empty($attachments)) {
+                $email['attachments'] = $attachments;
             }
 
             if (! \is_null($message->getBCC()) && ! empty($message->getBCC())) {
