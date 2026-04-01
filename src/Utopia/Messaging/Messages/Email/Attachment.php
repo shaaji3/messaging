@@ -6,13 +6,15 @@ class Attachment
 {
     /**
      * @param string $name  The name of the file.
-     * @param string $path  The content of the file.
+     * @param string $path  The path of the file.
      * @param string $type  The MIME type of the file.
+     * @param ?string $content  Raw string content of the file (used instead of path when non-null).
      */
     public function __construct(
         private string $name,
         private string $path,
         private string $type,
+        private ?string $content = null,
     ) {
     }
 
@@ -29,5 +31,10 @@ class Attachment
     public function getType(): string
     {
         return $this->type;
+    }
+
+    public function getContent(): ?string
+    {
+        return $this->content;
     }
 }
