@@ -42,7 +42,11 @@ class Resend extends EmailAdapter
                 if ($attachment->getContent() !== null) {
                     $size += \strlen($attachment->getContent());
                 } else {
-                    $size += \filesize($attachment->getPath());
+                    $fileSize = \filesize($attachment->getPath());
+                    if ($fileSize === false) {
+                        throw new \Exception('Failed to read attachment file: '.$attachment->getPath());
+                    }
+                    $size += $fileSize;
                 }
             }
 
@@ -54,12 +58,17 @@ class Resend extends EmailAdapter
                 if ($attachment->getContent() !== null) {
                     $content = \base64_encode($attachment->getContent());
                 } else {
-                    $content = \base64_encode(\file_get_contents($attachment->getPath()));
+                    $data = \file_get_contents($attachment->getPath());
+                    if ($data === false) {
+                        throw new \Exception('Failed to read attachment file: '.$attachment->getPath());
+                    }
+                    $content = \base64_encode($data);
                 }
 
                 $attachments[] = [
                     'filename' => $attachment->getName(),
                     'content' => $content,
+                    'content_type' => $attachment->getType(),
                 ];
             }
         }
