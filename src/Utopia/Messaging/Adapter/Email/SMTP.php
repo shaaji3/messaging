@@ -61,12 +61,9 @@ class SMTP extends EmailAdapter
 
         if ($this->keepAlive && $this->mail !== null) {
             $mail = $this->mail;
-            $mail->clearAddresses();
             $mail->clearAllRecipients();
             $mail->clearReplyTos();
             $mail->clearAttachments();
-            $mail->clearBCCs();
-            $mail->clearCCs();
         } else {
             $mail = new PHPMailer();
             $mail->isSMTP();
@@ -142,6 +139,7 @@ class SMTP extends EmailAdapter
                     $mail->addStringAttachment(
                         string: \file_get_contents($attachment->getPath()),
                         filename: $attachment->getName(),
+                        encoding: PHPMailer::ENCODING_BASE64,
                         type: $attachment->getType()
                     );
                 }
