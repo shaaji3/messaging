@@ -45,7 +45,9 @@ class Sendgrid extends EmailAdapter
     {
         $personalizations = \array_map(
             fn ($to) => [
-                'to' => [['email' => $to]],
+                'to' => [!empty($to['name'])
+                    ? ['email' => $to['email'], 'name' => $to['name']]
+                    : ['email' => $to['email']]],
                 'subject' => $message->getSubject(),
             ],
             $message->getTo()
@@ -138,16 +140,16 @@ class Sendgrid extends EmailAdapter
         if ($statusCode === 202) {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addResult($to);
+                $response->addResult($to['email']);
             }
         } else {
             foreach ($message->getTo() as $to) {
                 if (\is_string($result['response'])) {
-                    $response->addResult($to, $result['response']);
+                    $response->addResult($to['email'], $result['response']);
                 } elseif (!\is_null($result['response']['errors'][0]['message'] ?? null)) {
-                    $response->addResult($to, $result['response']['errors'][0]['message']);
+                    $response->addResult($to['email'], $result['response']['errors'][0]['message']);
                 } else {
-                    $response->addResult($to, 'Unknown error');
+                    $response->addResult($to['email'], 'Unknown error');
                 }
             }
         }

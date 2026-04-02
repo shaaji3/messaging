@@ -51,24 +51,32 @@ class Mailgun extends EmailAdapter
 
         $domain = $this->isEU ? $euDomain : $usDomain;
 
+        $recipients = $message->getTo();
+        $toEmails = \array_map(fn ($to) => $to['email'], $recipients);
+
         $body = [
-            'to' => \implode(',', $message->getTo()),
-            'from' => "{$message->getFromName()}<{$message->getFromEmail()}>",
+            'to' => \implode(',', \array_map(
+                fn ($to) => !empty($to['name'])
+                    ? "{$to['name']} <{$to['email']}>"
+                    : $to['email'],
+                $recipients
+            )),
+            'from' => "{$message->getFromName()} <{$message->getFromEmail()}>",
             'subject' => $message->getSubject(),
             'text' => $message->isHtml() ? null : $message->getContent(),
             'html' => $message->isHtml() ? $message->getContent() : null,
-            'h:Reply-To: '."{$message->getReplyToName()}<{$message->getReplyToEmail()}>",
+            'h:Reply-To: '."{$message->getReplyToName()} <{$message->getReplyToEmail()}>",
         ];
 
-        if (\count($message->getTo()) > 1) {
-            $body['recipient-variables'] = json_encode(array_fill_keys($message->getTo(), []));
+        if (\count($recipients) > 1) {
+            $body['recipient-variables'] = json_encode(array_fill_keys($toEmails, []));
         }
 
         if (!\is_null($message->getCC())) {
             foreach ($message->getCC() as $cc) {
                 if (!empty($cc['email'])) {
                     $ccString = !empty($cc['name'])
-                        ? "{$cc['name']}<{$cc['email']}>"
+                        ? "{$cc['name']} <{$cc['email']}>"
                         : $cc['email'];
 
                     $body['cc'] = !empty($body['cc'])
@@ -82,7 +90,7 @@ class Mailgun extends EmailAdapter
             foreach ($message->getBCC() as $bcc) {
                 if (!empty($bcc['email'])) {
                     $bccString = !empty($bcc['name'])
-                        ? "{$bcc['name']}<{$bcc['email']}>"
+                        ? "{$bcc['name']} <{$bcc['email']}>"
                         : $bcc['email'];
 
                     $body['bcc'] = !empty($body['bcc'])
@@ -140,16 +148,16 @@ class Mailgun extends EmailAdapter
         if ($statusCode >= 200 && $statusCode < 300) {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addResult($to);
+                $response->addResult($to['email']);
             }
         } elseif ($statusCode >= 400 && $statusCode < 500) {
             foreach ($message->getTo() as $to) {
                 if (\is_string($result['response'])) {
-                    $response->addResult($to, $result['response']);
+                    $response->addResult($to['email'], $result['response']);
                 } elseif (isset($result['response']['message'])) {
-                    $response->addResult($to, $result['response']['message']);
+                    $response->addResult($to['email'], $result['response']['message']);
                 } else {
-                    $response->addResult($to, 'Unknown error');
+                    $response->addResult($to['email'], 'Unknown error');
                 }
             }
         }

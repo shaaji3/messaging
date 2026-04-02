@@ -77,11 +77,15 @@ class Resend extends EmailAdapter
 
         $emails = [];
         foreach ($message->getTo() as $to) {
+            $toFormatted = !empty($to['name'])
+                ? "{$to['name']} <{$to['email']}>"
+                : $to['email'];
+
             $email = [
                 'from' => $message->getFromName()
                     ? "{$message->getFromName()} <{$message->getFromEmail()}>"
                     : $message->getFromEmail(),
-                'to' => [$to],
+                'to' => [$toFormatted],
                 'subject' => $message->getSubject(),
             ];
 
@@ -98,17 +102,13 @@ class Resend extends EmailAdapter
             }
 
             if (! \is_null($message->getCC()) && ! empty($message->getCC())) {
-                $ccList = [];
-                foreach ($message->getCC() as $cc) {
-                    if (! empty($cc['email'])) {
-                        $ccList[] = ! empty($cc['name'])
-                            ? "{$cc['name']} <{$cc['email']}>"
-                            : $cc['email'];
-                    }
-                }
-                if (! empty($ccList)) {
-                    $email['cc'] = $ccList;
-                }
+                $ccList = \array_map(
+                    fn ($cc) => ! empty($cc['name'])
+                        ? "{$cc['name']} <{$cc['email']}>"
+                        : $cc['email'],
+                    $message->getCC()
+                );
+                $email['cc'] = $ccList;
             }
 
             if (! empty($attachments)) {
@@ -116,17 +116,13 @@ class Resend extends EmailAdapter
             }
 
             if (! \is_null($message->getBCC()) && ! empty($message->getBCC())) {
-                $bccList = [];
-                foreach ($message->getBCC() as $bcc) {
-                    if (! empty($bcc['email'])) {
-                        $bccList[] = ! empty($bcc['name'])
-                            ? "{$bcc['name']} <{$bcc['email']}>"
-                            : $bcc['email'];
-                    }
-                }
-                if (! empty($bccList)) {
-                    $email['bcc'] = $bccList;
-                }
+                $bccList = \array_map(
+                    fn ($bcc) => ! empty($bcc['name'])
+                        ? "{$bcc['name']} <{$bcc['email']}>"
+                        : $bcc['email'],
+                    $message->getBCC()
+                );
+                $email['bcc'] = $bccList;
             }
 
             $emails[] = $email;
@@ -157,9 +153,9 @@ class Resend extends EmailAdapter
 
                 foreach ($message->getTo() as $index => $to) {
                     if (isset($failedIndices[$index])) {
-                        $response->addResult($to, $failedIndices[$index]);
+                        $response->addResult($to['email'], $failedIndices[$index]);
                     } else {
-                        $response->addResult($to);
+                        $response->addResult($to['email']);
                     }
                 }
 
@@ -168,7 +164,7 @@ class Resend extends EmailAdapter
             } else {
                 $response->setDeliveredTo(\count($message->getTo()));
                 foreach ($message->getTo() as $to) {
-                    $response->addResult($to);
+                    $response->addResult($to['email']);
                 }
             }
         } elseif ($statusCode >= 400 && $statusCode < 500) {
@@ -183,7 +179,7 @@ class Resend extends EmailAdapter
             }
 
             foreach ($message->getTo() as $to) {
-                $response->addResult($to, $errorMessage);
+                $response->addResult($to['email'], $errorMessage);
             }
         } elseif ($statusCode >= 500) {
             $errorMessage = 'Server error';
@@ -195,7 +191,7 @@ class Resend extends EmailAdapter
             }
 
             foreach ($message->getTo() as $to) {
-                $response->addResult($to, $errorMessage);
+                $response->addResult($to['email'], $errorMessage);
             }
         }
 

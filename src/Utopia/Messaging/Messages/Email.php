@@ -8,33 +8,50 @@ use Utopia\Messaging\Messages\Email\Attachment;
 class Email implements Message
 {
     /**
-     * @param  array<string>  $to The recipients of the email.
+     * @var array<array<string,string>>
+     */
+    private array $to;
+
+    /**
+     * @var array<array<string,string>>|null
+     */
+    private ?array $cc;
+
+    /**
+     * @var array<array<string,string>>|null
+     */
+    private ?array $bcc;
+
+    /**
+     * @param  array<string|array<string,string>>  $to The recipients of the email. Each entry can be an email string or an associative array with 'email' and optional 'name' keys.
      * @param  string  $subject The subject of the email.
      * @param  string  $content The content of the email.
      * @param  string  $fromName The name of the sender.
      * @param  string  $fromEmail The email address of the sender.
-     * @param  array<array<string,string>>|null  $cc . The CC recipients of the email. Each recipient should be an array containing a "name" and an "email" key.
-     * @param  array<array<string,string>>|null  $bcc . The BCC recipients of the email. Each recipient should be an array containing a "name" and an "email" key.
      * @param  string|null  $replyToName The name of the reply to.
      * @param  string|null  $replyToEmail The email address of the reply to.
+     * @param  array<string|array<string,string>>|null  $cc The CC recipients of the email. Same format as $to.
+     * @param  array<string|array<string,string>>|null  $bcc The BCC recipients of the email. Same format as $to.
      * @param  array<Attachment>|null  $attachments The attachments of the email.
      * @param  bool  $html Whether the message is HTML or not.
-     *
-     * @throws \InvalidArgumentException
      */
     public function __construct(
-        private array $to,
+        array $to,
         private string $subject,
         private string $content,
         private string $fromName,
         private string $fromEmail,
         private ?string $replyToName = null,
         private ?string $replyToEmail = null,
-        private ?array $cc = null,
-        private ?array $bcc = null,
+        ?array $cc = null,
+        ?array $bcc = null,
         private ?array $attachments = null,
         private bool $html = false,
     ) {
+        $this->to = \array_map(self::normalizeRecipient(...), $to);
+        $this->cc = !\is_null($cc) ? \array_map(self::normalizeRecipient(...), $cc) : null;
+        $this->bcc = !\is_null($bcc) ? \array_map(self::normalizeRecipient(...), $bcc) : null;
+
         if (\is_null($this->replyToName)) {
             $this->replyToName = $this->fromName;
         }
@@ -42,26 +59,33 @@ class Email implements Message
         if (\is_null($this->replyToEmail)) {
             $this->replyToEmail = $this->fromEmail;
         }
-
-        if (!\is_null($this->cc)) {
-            foreach ($this->cc as $recipient) {
-                if (!isset($recipient['email'])) {
-                    throw new \InvalidArgumentException('Each CC recipient must have at least an email');
-                }
-            }
-        }
-
-        if (!\is_null($this->bcc)) {
-            foreach ($this->bcc as $recipient) {
-                if (!isset($recipient['email'])) {
-                    throw new \InvalidArgumentException('Each BCC recipient must have at least an email');
-                }
-            }
-        }
     }
 
     /**
-     * @return array<string>
+     * Normalize a recipient entry to an associative array with 'email' and optional 'name' keys.
+     *
+     * @param  string|array<string,string>  $value
+     * @return array<string,string>
+     */
+    private static function normalizeRecipient(string|array $value): array
+    {
+        if (\is_string($value)) {
+            if ($value === '') {
+                throw new \InvalidArgumentException('Recipient email must not be empty.');
+            }
+
+            return ['email' => $value];
+        }
+
+        if (!isset($value['email']) || $value['email'] === '') {
+            throw new \InvalidArgumentException('Each recipient must have a non-empty "email" key.');
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return array<array<string,string>>
      */
     public function getTo(): array
     {
@@ -99,7 +123,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<array<string, string>>|null
+     * @return array<array<string,string>>|null
      */
     public function getCC(): ?array
     {
@@ -107,7 +131,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<array<string, string>>|null
+     * @return array<array<string,string>>|null
      */
     public function getBCC(): ?array
     {
@@ -115,7 +139,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return array<Attachment>|null
      */
     public function getAttachments(): ?array
     {

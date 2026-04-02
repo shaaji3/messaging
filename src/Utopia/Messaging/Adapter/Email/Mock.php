@@ -47,7 +47,7 @@ class Mock extends EmailAdapter
         $mail->isHTML($message->isHtml());
 
         foreach ($message->getTo() as $to) {
-            $mail->addAddress($to);
+            $mail->addAddress($to['email'], $to['name'] ?? '');
         }
 
         if (!empty($message->getCC())) {
@@ -64,12 +64,12 @@ class Mock extends EmailAdapter
 
         if (!$mail->send()) {
             foreach ($message->getTo() as $to) {
-                $response->addResult($to, $mail->ErrorInfo);
+                $response->addResult($to['email'], $mail->ErrorInfo);
             }
         } else {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addResult($to);
+                $response->addResult($to['email']);
             }
         }
 

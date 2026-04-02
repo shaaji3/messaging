@@ -97,7 +97,7 @@ class SMTP extends EmailAdapter
         $mail->AltBody = \trim($mail->AltBody);
 
         foreach ($message->getTo() as $to) {
-            $mail->addAddress($to);
+            $mail->addAddress($to['email'], $to['name'] ?? '');
         }
 
         if (!empty($message->getCC())) {
@@ -158,10 +158,10 @@ class SMTP extends EmailAdapter
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
 
-            $response->addResult($to, $sent ? '' : $error);
+            $response->addResult($to['email'], $sent ? '' : $error);
         }
 
-        foreach ($message->getCC() as $cc) {
+        foreach ($message->getCC() ?? [] as $cc) {
             $error = empty($mail->ErrorInfo)
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
@@ -169,7 +169,7 @@ class SMTP extends EmailAdapter
             $response->addResult($cc['email'], $sent ? '' : $error);
         }
 
-        foreach ($message->getBCC() as $bcc) {
+        foreach ($message->getBCC() ?? [] as $bcc) {
             $error = empty($mail->ErrorInfo)
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
