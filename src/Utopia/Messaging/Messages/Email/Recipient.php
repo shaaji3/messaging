@@ -8,6 +8,9 @@ class Recipient
         private string $email,
         private string $name = '',
     ) {
+        if (empty($email)) {
+            throw new \InvalidArgumentException('Recipient email must not be empty.');
+        }
     }
 
     public function getEmail(): string

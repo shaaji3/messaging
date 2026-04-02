@@ -56,7 +56,7 @@ class Mailgun extends EmailAdapter
         $body = [
             'to' => \implode(',', \array_map(
                 fn ($to) => !empty($to->getName())
-                    ? "{$to->getName()}<{$to->getEmail()}>"
+                    ? "{$to->getName()} <{$to->getEmail()}>"
                     : $to->getEmail(),
                 $message->getTo()
             )),
@@ -74,7 +74,7 @@ class Mailgun extends EmailAdapter
         if (!\is_null($message->getCC())) {
             foreach ($message->getCC() as $cc) {
                 $ccString = !empty($cc->getName())
-                    ? "{$cc->getName()}<{$cc->getEmail()}>"
+                    ? "{$cc->getName()} <{$cc->getEmail()}>"
                     : $cc->getEmail();
 
                 $body['cc'] = !empty($body['cc'])
@@ -86,7 +86,7 @@ class Mailgun extends EmailAdapter
         if (!\is_null($message->getBCC())) {
             foreach ($message->getBCC() as $bcc) {
                 $bccString = !empty($bcc->getName())
-                    ? "{$bcc->getName()}<{$bcc->getEmail()}>"
+                    ? "{$bcc->getName()} <{$bcc->getEmail()}>"
                     : $bcc->getEmail();
 
                 $body['bcc'] = !empty($body['bcc'])
