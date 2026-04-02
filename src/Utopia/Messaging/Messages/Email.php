@@ -48,9 +48,9 @@ class Email implements Message
         private ?array $attachments = null,
         private bool $html = false,
     ) {
-        $this->to = \array_map([self::class, 'normalizeRecipient'], $to);
-        $this->cc = !\is_null($cc) ? \array_map([self::class, 'normalizeRecipient'], $cc) : null;
-        $this->bcc = !\is_null($bcc) ? \array_map([self::class, 'normalizeRecipient'], $bcc) : null;
+        $this->to = \array_map(self::normalizeRecipient(...), $to);
+        $this->cc = !\is_null($cc) ? \array_map(self::normalizeRecipient(...), $cc) : null;
+        $this->bcc = !\is_null($bcc) ? \array_map(self::normalizeRecipient(...), $bcc) : null;
 
         if (\is_null($this->replyToName)) {
             $this->replyToName = $this->fromName;
