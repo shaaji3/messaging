@@ -97,18 +97,18 @@ class SMTP extends EmailAdapter
         $mail->AltBody = \trim($mail->AltBody);
 
         foreach ($message->getTo() as $to) {
-            $mail->addAddress($to->getEmail(), $to->getName());
+            $mail->addAddress($to['email'], $to['name'] ?? '');
         }
 
         if (!empty($message->getCC())) {
             foreach ($message->getCC() as $cc) {
-                $mail->addCC($cc->getEmail(), $cc->getName());
+                $mail->addCC($cc['email'], $cc['name'] ?? '');
             }
         }
 
         if (!empty($message->getBCC())) {
             foreach ($message->getBCC() as $bcc) {
-                $mail->addBCC($bcc->getEmail(), $bcc->getName());
+                $mail->addBCC($bcc['email'], $bcc['name'] ?? '');
             }
         }
 
@@ -158,7 +158,7 @@ class SMTP extends EmailAdapter
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
 
-            $response->addResult($to->getEmail(), $sent ? '' : $error);
+            $response->addResult($to['email'], $sent ? '' : $error);
         }
 
         foreach ($message->getCC() as $cc) {
@@ -166,7 +166,7 @@ class SMTP extends EmailAdapter
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
 
-            $response->addResult($cc->getEmail(), $sent ? '' : $error);
+            $response->addResult($cc['email'], $sent ? '' : $error);
         }
 
         foreach ($message->getBCC() as $bcc) {
@@ -174,7 +174,7 @@ class SMTP extends EmailAdapter
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
 
-            $response->addResult($bcc->getEmail(), $sent ? '' : $error);
+            $response->addResult($bcc['email'], $sent ? '' : $error);
         }
 
         return $response->toArray();

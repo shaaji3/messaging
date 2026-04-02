@@ -47,29 +47,29 @@ class Mock extends EmailAdapter
         $mail->isHTML($message->isHtml());
 
         foreach ($message->getTo() as $to) {
-            $mail->addAddress($to->getEmail(), $to->getName());
+            $mail->addAddress($to['email'], $to['name'] ?? '');
         }
 
         if (!empty($message->getCC())) {
             foreach ($message->getCC() as $cc) {
-                $mail->addCC($cc->getEmail(), $cc->getName());
+                $mail->addCC($cc['email'], $cc['name'] ?? '');
             }
         }
 
         if (!empty($message->getBCC())) {
             foreach ($message->getBCC() as $bcc) {
-                $mail->addBCC($bcc->getEmail(), $bcc->getName());
+                $mail->addBCC($bcc['email'], $bcc['name'] ?? '');
             }
         }
 
         if (!$mail->send()) {
             foreach ($message->getTo() as $to) {
-                $response->addResult($to->getEmail(), $mail->ErrorInfo);
+                $response->addResult($to['email'], $mail->ErrorInfo);
             }
         } else {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addResult($to->getEmail());
+                $response->addResult($to['email']);
             }
         }
 

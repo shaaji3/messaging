@@ -4,35 +4,34 @@ namespace Utopia\Messaging\Messages;
 
 use Utopia\Messaging\Message;
 use Utopia\Messaging\Messages\Email\Attachment;
-use Utopia\Messaging\Messages\Email\Recipient;
 
 class Email implements Message
 {
     /**
-     * @var array<Recipient>
+     * @var array<array<string,string>>
      */
     private array $to;
 
     /**
-     * @var array<Recipient>|null
+     * @var array<array<string,string>>|null
      */
     private ?array $cc;
 
     /**
-     * @var array<Recipient>|null
+     * @var array<array<string,string>>|null
      */
     private ?array $bcc;
 
     /**
-     * @param  array<string|Recipient|array<string,string>>  $to The recipients of the email. Each entry can be an email string, a Recipient object, or an associative array with 'email' and optional 'name' keys.
+     * @param  array<string|array<string,string>>  $to The recipients of the email. Each entry can be an email string or an associative array with 'email' and optional 'name' keys.
      * @param  string  $subject The subject of the email.
      * @param  string  $content The content of the email.
      * @param  string  $fromName The name of the sender.
      * @param  string  $fromEmail The email address of the sender.
      * @param  string|null  $replyToName The name of the reply to.
      * @param  string|null  $replyToEmail The email address of the reply to.
-     * @param  array<string|Recipient|array<string,string>>|null  $cc The CC recipients of the email. Same format as $to.
-     * @param  array<string|Recipient|array<string,string>>|null  $bcc The BCC recipients of the email. Same format as $to.
+     * @param  array<array<string,string>>|null  $cc The CC recipients of the email. Each recipient should be an array containing an "email" and optional "name" key.
+     * @param  array<array<string,string>>|null  $bcc The BCC recipients of the email. Each recipient should be an array containing an "email" and optional "name" key.
      * @param  array<Attachment>|null  $attachments The attachments of the email.
      * @param  bool  $html Whether the message is HTML or not.
      */
@@ -49,9 +48,9 @@ class Email implements Message
         private ?array $attachments = null,
         private bool $html = false,
     ) {
-        $this->to = \array_map([self::class, 'toRecipient'], $to);
-        $this->cc = !\is_null($cc) ? \array_map([self::class, 'toRecipient'], $cc) : null;
-        $this->bcc = !\is_null($bcc) ? \array_map([self::class, 'toRecipient'], $bcc) : null;
+        $this->to = \array_map([self::class, 'normalizeRecipient'], $to);
+        $this->cc = !\is_null($cc) ? self::validateRecipients($cc) : null;
+        $this->bcc = !\is_null($bcc) ? self::validateRecipients($bcc) : null;
 
         if (\is_null($this->replyToName)) {
             $this->replyToName = $this->fromName;
@@ -63,27 +62,43 @@ class Email implements Message
     }
 
     /**
-     * @param  string|Recipient|array<string,string>  $value
+     * Normalize a recipient entry to an associative array with 'email' and optional 'name' keys.
+     *
+     * @param  string|array<string,string>  $value
+     * @return array<string,string>
      */
-    private static function toRecipient(string|Recipient|array $value): Recipient
+    private static function normalizeRecipient(string|array $value): array
     {
-        if ($value instanceof Recipient) {
-            return $value;
-        }
-
         if (\is_string($value)) {
-            return new Recipient($value);
+            return ['email' => $value];
         }
 
-        if (!\is_array($value) || !isset($value['email'])) {
-            throw new \InvalidArgumentException('Each recipient must be a string, a Recipient object, or an array with at least an "email" key.');
+        if (!isset($value['email'])) {
+            throw new \InvalidArgumentException('Each recipient must have at least an "email" key.');
         }
 
-        return new Recipient($value['email'], $value['name'] ?? '');
+        return $value;
     }
 
     /**
-     * @return array<Recipient>
+     * Validate an array of recipients.
+     *
+     * @param  array<array<string,string>>  $recipients
+     * @return array<array<string,string>>
+     */
+    private static function validateRecipients(array $recipients): array
+    {
+        foreach ($recipients as $recipient) {
+            if (!isset($recipient['email'])) {
+                throw new \InvalidArgumentException('Each recipient must have at least an "email" key.');
+            }
+        }
+
+        return $recipients;
+    }
+
+    /**
+     * @return array<array<string,string>>
      */
     public function getTo(): array
     {
@@ -121,7 +136,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<Recipient>|null
+     * @return array<array<string,string>>|null
      */
     public function getCC(): ?array
     {
@@ -129,7 +144,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<Recipient>|null
+     * @return array<array<string,string>>|null
      */
     public function getBCC(): ?array
     {
