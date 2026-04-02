@@ -82,7 +82,9 @@ class EmailTest extends Base
 
         $response = $sender->send($message);
 
-        $this->assertResponse($response);
+        $this->assertEquals(2, $response['deliveredTo']);
+        $this->assertEquals('success', $response['results'][0]['status']);
+        $this->assertEquals('success', $response['results'][1]['status']);
 
         // Verify both recipients are normalized to array format
         $to = $message->getTo();
