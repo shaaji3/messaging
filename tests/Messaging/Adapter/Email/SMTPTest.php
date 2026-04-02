@@ -5,6 +5,7 @@ namespace Utopia\Tests\Adapter\Email;
 use Utopia\Messaging\Adapter\Email\SMTP;
 use Utopia\Messaging\Messages\Email;
 use Utopia\Messaging\Messages\Email\Attachment;
+use Utopia\Messaging\Messages\Email\Recipient;
 use Utopia\Tests\Adapter\Base;
 
 class SMTPTest extends Base
@@ -23,7 +24,7 @@ class SMTPTest extends Base
         $fromEmail = 'sender@localhost.test';
 
         $message = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: $subject,
             content: $content,
             fromName: $fromName,
@@ -55,7 +56,7 @@ class SMTPTest extends Base
         $fromEmail = 'sender@localhost.test';
 
         $message = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: $subject,
             content: $content,
             fromName: $fromName,
@@ -89,12 +90,7 @@ class SMTPTest extends Base
         $content = 'Test Content';
         $fromName = 'Test Sender';
         $fromEmail = 'sender@localhost.test';
-        $bcc = [
-            [
-                'email' => 'tester2@localhost.test',
-                'name' => 'Test Recipient 2',
-            ],
-        ];
+        $bcc = [new Recipient('tester2@localhost.test', 'Test Recipient 2')];
 
         $message = new Email(
             to: [],
@@ -180,7 +176,7 @@ class SMTPTest extends Base
         $fromEmail = 'sender@localhost.test';
 
         $message = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: $subject,
             content: $content,
             fromName: $fromName,
@@ -216,7 +212,7 @@ class SMTPTest extends Base
 
         // Send first message
         $message1 = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: 'KeepAlive Test 1',
             content: 'First message',
             fromName: 'Test',
@@ -228,7 +224,7 @@ class SMTPTest extends Base
 
         // Send second message — should reuse the PHPMailer instance
         $message2 = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: 'KeepAlive Test 2',
             content: 'Second message',
             fromName: 'Test',

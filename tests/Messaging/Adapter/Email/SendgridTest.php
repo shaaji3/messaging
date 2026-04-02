@@ -5,6 +5,7 @@ namespace Utopia\Tests\Adapter\Email;
 use Utopia\Messaging\Adapter\Email\Sendgrid;
 use Utopia\Messaging\Messages\Email;
 use Utopia\Messaging\Messages\Email\Attachment;
+use Utopia\Messaging\Messages\Email\Recipient;
 use Utopia\Tests\Adapter\Base;
 
 class SendgridTest extends Base
@@ -18,11 +19,11 @@ class SendgridTest extends Base
         $subject = 'Test Subject';
         $content = 'Test Content';
         $fromEmail = \getenv('TEST_FROM_EMAIL');
-        $cc = [['email' => \getenv('TEST_CC_EMAIL')]];
-        $bcc = [['name' => \getenv('TEST_BCC_NAME'), 'email' => \getenv('TEST_BCC_EMAIL')]];
+        $cc = [new Recipient(\getenv('TEST_CC_EMAIL'))];
+        $bcc = [new Recipient(\getenv('TEST_BCC_EMAIL'), \getenv('TEST_BCC_NAME'))];
 
         $message = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: $subject,
             content: $content,
             fromName: 'Tester',
@@ -47,7 +48,7 @@ class SendgridTest extends Base
         $fromEmail = \getenv('TEST_FROM_EMAIL');
 
         $message = new Email(
-            to: [$to],
+            to: [new Recipient($to)],
             subject: $subject,
             content: $content,
             fromName: 'Tester',

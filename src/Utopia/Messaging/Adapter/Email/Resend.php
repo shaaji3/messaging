@@ -102,15 +102,13 @@ class Resend extends EmailAdapter
             }
 
             if (! \is_null($message->getCC()) && ! empty($message->getCC())) {
-                $ccList = [];
-                foreach ($message->getCC() as $cc) {
-                    $ccList[] = ! empty($cc->getName())
+                $ccList = \array_map(
+                    fn ($cc) => ! empty($cc->getName())
                         ? "{$cc->getName()} <{$cc->getEmail()}>"
-                        : $cc->getEmail();
-                }
-                if (! empty($ccList)) {
-                    $email['cc'] = $ccList;
-                }
+                        : $cc->getEmail(),
+                    $message->getCC()
+                );
+                $email['cc'] = $ccList;
             }
 
             if (! empty($attachments)) {
@@ -118,15 +116,13 @@ class Resend extends EmailAdapter
             }
 
             if (! \is_null($message->getBCC()) && ! empty($message->getBCC())) {
-                $bccList = [];
-                foreach ($message->getBCC() as $bcc) {
-                    $bccList[] = ! empty($bcc->getName())
+                $bccList = \array_map(
+                    fn ($bcc) => ! empty($bcc->getName())
                         ? "{$bcc->getName()} <{$bcc->getEmail()}>"
-                        : $bcc->getEmail();
-                }
-                if (! empty($bccList)) {
-                    $email['bcc'] = $bccList;
-                }
+                        : $bcc->getEmail(),
+                    $message->getBCC()
+                );
+                $email['bcc'] = $bccList;
             }
 
             $emails[] = $email;
