@@ -43,4 +43,137 @@ class EmailTest extends Base
         $this->assertEquals($cc[0]['email'], $lastEmail['cc'][0]['address']);
         $this->assertEquals($bcc[0]['email'], $lastEmail['envelope']['to'][2]['address']);
     }
+
+    public function testSendEmailWithNamedToRecipient(): void
+    {
+        $sender = new Mock();
+
+        $message = new Email(
+            to: [['email' => 'tester@localhost.test', 'name' => 'Test User']],
+            subject: 'Named To Test',
+            content: 'Test Content',
+            fromName: 'Test Sender',
+            fromEmail: 'sender@localhost.test',
+        );
+
+        $response = $sender->send($message);
+
+        $lastEmail = $this->getLastEmail();
+
+        $this->assertResponse($response);
+        $this->assertEquals('tester@localhost.test', $lastEmail['to'][0]['address']);
+        $this->assertEquals('Test User', $lastEmail['to'][0]['name']);
+    }
+
+    public function testSendEmailWithMixedToFormats(): void
+    {
+        $sender = new Mock();
+
+        $message = new Email(
+            to: [
+                'plain@localhost.test',
+                ['email' => 'named@localhost.test', 'name' => 'Named User'],
+            ],
+            subject: 'Mixed To Test',
+            content: 'Test Content',
+            fromName: 'Test Sender',
+            fromEmail: 'sender@localhost.test',
+        );
+
+        $response = $sender->send($message);
+
+        $this->assertResponse($response);
+
+        // Verify both recipients are normalized to array format
+        $to = $message->getTo();
+        $this->assertEquals('plain@localhost.test', $to[0]['email']);
+        $this->assertArrayNotHasKey('name', $to[0]);
+        $this->assertEquals('named@localhost.test', $to[1]['email']);
+        $this->assertEquals('Named User', $to[1]['name']);
+    }
+
+    public function testCcAcceptsPlainStrings(): void
+    {
+        $message = new Email(
+            to: ['tester@localhost.test'],
+            subject: 'CC String Test',
+            content: 'Test Content',
+            fromName: 'Test Sender',
+            fromEmail: 'sender@localhost.test',
+            cc: ['cc@localhost.test'],
+        );
+
+        $cc = $message->getCC();
+        $this->assertNotNull($cc);
+        $this->assertEquals('cc@localhost.test', $cc[0]['email']);
+    }
+
+    public function testBccAcceptsPlainStrings(): void
+    {
+        $message = new Email(
+            to: ['tester@localhost.test'],
+            subject: 'BCC String Test',
+            content: 'Test Content',
+            fromName: 'Test Sender',
+            fromEmail: 'sender@localhost.test',
+            bcc: ['bcc@localhost.test'],
+        );
+
+        $bcc = $message->getBCC();
+        $this->assertNotNull($bcc);
+        $this->assertEquals('bcc@localhost.test', $bcc[0]['email']);
+    }
+
+    public function testRejectsEmptyEmailString(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Email(
+            to: [''],
+            subject: 'Test',
+            content: 'Test',
+            fromName: 'Test',
+            fromEmail: 'sender@localhost.test',
+        );
+    }
+
+    public function testRejectsEmptyEmailInArray(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Email(
+            to: [['email' => '', 'name' => 'Ghost']],
+            subject: 'Test',
+            content: 'Test',
+            fromName: 'Test',
+            fromEmail: 'sender@localhost.test',
+        );
+    }
+
+    public function testRejectsMissingEmailKey(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Email(
+            to: [['name' => 'No Email']],
+            subject: 'Test',
+            content: 'Test',
+            fromName: 'Test',
+            fromEmail: 'sender@localhost.test',
+        );
+    }
+
+    public function testRejectsEmptyEmailInCc(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new Email(
+            to: ['valid@localhost.test'],
+            subject: 'Test',
+            content: 'Test',
+            fromName: 'Test',
+            fromEmail: 'sender@localhost.test',
+            cc: [''],
+        );
+    }
 }

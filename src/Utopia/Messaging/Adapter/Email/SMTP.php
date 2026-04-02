@@ -161,7 +161,7 @@ class SMTP extends EmailAdapter
             $response->addResult($to['email'], $sent ? '' : $error);
         }
 
-        foreach ($message->getCC() as $cc) {
+        foreach ($message->getCC() ?? [] as $cc) {
             $error = empty($mail->ErrorInfo)
                 ? 'Unknown error'
                 : $mail->ErrorInfo;
@@ -169,7 +169,7 @@ class SMTP extends EmailAdapter
             $response->addResult($cc['email'], $sent ? '' : $error);
         }
 
-        foreach ($message->getBCC() as $bcc) {
+        foreach ($message->getBCC() ?? [] as $bcc) {
             $error = empty($mail->ErrorInfo)
                 ? 'Unknown error'
                 : $mail->ErrorInfo;

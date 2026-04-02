@@ -30,8 +30,8 @@ class Email implements Message
      * @param  string  $fromEmail The email address of the sender.
      * @param  string|null  $replyToName The name of the reply to.
      * @param  string|null  $replyToEmail The email address of the reply to.
-     * @param  array<array<string,string>>|null  $cc The CC recipients of the email. Each recipient should be an array containing an "email" and optional "name" key.
-     * @param  array<array<string,string>>|null  $bcc The BCC recipients of the email. Each recipient should be an array containing an "email" and optional "name" key.
+     * @param  array<string|array<string,string>>|null  $cc The CC recipients of the email. Same format as $to.
+     * @param  array<string|array<string,string>>|null  $bcc The BCC recipients of the email. Same format as $to.
      * @param  array<Attachment>|null  $attachments The attachments of the email.
      * @param  bool  $html Whether the message is HTML or not.
      */
@@ -49,8 +49,8 @@ class Email implements Message
         private bool $html = false,
     ) {
         $this->to = \array_map([self::class, 'normalizeRecipient'], $to);
-        $this->cc = !\is_null($cc) ? self::validateRecipients($cc) : null;
-        $this->bcc = !\is_null($bcc) ? self::validateRecipients($bcc) : null;
+        $this->cc = !\is_null($cc) ? \array_map([self::class, 'normalizeRecipient'], $cc) : null;
+        $this->bcc = !\is_null($bcc) ? \array_map([self::class, 'normalizeRecipient'], $bcc) : null;
 
         if (\is_null($this->replyToName)) {
             $this->replyToName = $this->fromName;
@@ -70,31 +70,18 @@ class Email implements Message
     private static function normalizeRecipient(string|array $value): array
     {
         if (\is_string($value)) {
+            if ($value === '') {
+                throw new \InvalidArgumentException('Recipient email must not be empty.');
+            }
+
             return ['email' => $value];
         }
 
-        if (!isset($value['email'])) {
-            throw new \InvalidArgumentException('Each recipient must have at least an "email" key.');
+        if (!isset($value['email']) || $value['email'] === '') {
+            throw new \InvalidArgumentException('Each recipient must have a non-empty "email" key.');
         }
 
         return $value;
-    }
-
-    /**
-     * Validate an array of recipients.
-     *
-     * @param  array<array<string,string>>  $recipients
-     * @return array<array<string,string>>
-     */
-    private static function validateRecipients(array $recipients): array
-    {
-        foreach ($recipients as $recipient) {
-            if (!isset($recipient['email'])) {
-                throw new \InvalidArgumentException('Each recipient must have at least an "email" key.');
-            }
-        }
-
-        return $recipients;
     }
 
     /**

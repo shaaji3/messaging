@@ -51,23 +51,24 @@ class Mailgun extends EmailAdapter
 
         $domain = $this->isEU ? $euDomain : $usDomain;
 
-        $toEmails = \array_map(fn ($to) => $to['email'], $message->getTo());
+        $recipients = $message->getTo();
+        $toEmails = \array_map(fn ($to) => $to['email'], $recipients);
 
         $body = [
             'to' => \implode(',', \array_map(
                 fn ($to) => !empty($to['name'])
                     ? "{$to['name']} <{$to['email']}>"
                     : $to['email'],
-                $message->getTo()
+                $recipients
             )),
-            'from' => "{$message->getFromName()}<{$message->getFromEmail()}>",
+            'from' => "{$message->getFromName()} <{$message->getFromEmail()}>",
             'subject' => $message->getSubject(),
             'text' => $message->isHtml() ? null : $message->getContent(),
             'html' => $message->isHtml() ? $message->getContent() : null,
-            'h:Reply-To: '."{$message->getReplyToName()}<{$message->getReplyToEmail()}>",
+            'h:Reply-To: '."{$message->getReplyToName()} <{$message->getReplyToEmail()}>",
         ];
 
-        if (\count($message->getTo()) > 1) {
+        if (\count($recipients) > 1) {
             $body['recipient-variables'] = json_encode(array_fill_keys($toEmails, []));
         }
 
