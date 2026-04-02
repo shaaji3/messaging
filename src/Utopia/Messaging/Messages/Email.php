@@ -4,23 +4,22 @@ namespace Utopia\Messaging\Messages;
 
 use Utopia\Messaging\Message;
 use Utopia\Messaging\Messages\Email\Attachment;
+use Utopia\Messaging\Messages\Email\Recipient;
 
 class Email implements Message
 {
     /**
-     * @param  array<string>  $to The recipients of the email.
+     * @param  array<Recipient>  $to The recipients of the email.
      * @param  string  $subject The subject of the email.
      * @param  string  $content The content of the email.
      * @param  string  $fromName The name of the sender.
      * @param  string  $fromEmail The email address of the sender.
-     * @param  array<array<string,string>>|null  $cc . The CC recipients of the email. Each recipient should be an array containing a "name" and an "email" key.
-     * @param  array<array<string,string>>|null  $bcc . The BCC recipients of the email. Each recipient should be an array containing a "name" and an "email" key.
      * @param  string|null  $replyToName The name of the reply to.
      * @param  string|null  $replyToEmail The email address of the reply to.
+     * @param  array<Recipient>|null  $cc The CC recipients of the email.
+     * @param  array<Recipient>|null  $bcc The BCC recipients of the email.
      * @param  array<Attachment>|null  $attachments The attachments of the email.
      * @param  bool  $html Whether the message is HTML or not.
-     *
-     * @throws \InvalidArgumentException
      */
     public function __construct(
         private array $to,
@@ -42,26 +41,10 @@ class Email implements Message
         if (\is_null($this->replyToEmail)) {
             $this->replyToEmail = $this->fromEmail;
         }
-
-        if (!\is_null($this->cc)) {
-            foreach ($this->cc as $recipient) {
-                if (!isset($recipient['email'])) {
-                    throw new \InvalidArgumentException('Each CC recipient must have at least an email');
-                }
-            }
-        }
-
-        if (!\is_null($this->bcc)) {
-            foreach ($this->bcc as $recipient) {
-                if (!isset($recipient['email'])) {
-                    throw new \InvalidArgumentException('Each BCC recipient must have at least an email');
-                }
-            }
-        }
     }
 
     /**
-     * @return array<string>
+     * @return array<Recipient>
      */
     public function getTo(): array
     {
@@ -99,7 +82,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<array<string, string>>|null
+     * @return array<Recipient>|null
      */
     public function getCC(): ?array
     {
@@ -107,7 +90,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<array<string, string>>|null
+     * @return array<Recipient>|null
      */
     public function getBCC(): ?array
     {
@@ -115,7 +98,7 @@ class Email implements Message
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return array<Attachment>|null
      */
     public function getAttachments(): ?array
     {

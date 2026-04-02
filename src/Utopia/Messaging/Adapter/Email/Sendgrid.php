@@ -45,7 +45,9 @@ class Sendgrid extends EmailAdapter
     {
         $personalizations = \array_map(
             fn ($to) => [
-                'to' => [['email' => $to]],
+                'to' => [!empty($to->getName())
+                    ? ['email' => $to->getEmail(), 'name' => $to->getName()]
+                    : ['email' => $to->getEmail()]],
                 'subject' => $message->getSubject(),
             ],
             $message->getTo()
@@ -54,9 +56,9 @@ class Sendgrid extends EmailAdapter
         if (!empty($message->getCC())) {
             foreach ($personalizations as &$personalization) {
                 foreach ($message->getCC() as $cc) {
-                    $entry = ['email' => $cc['email']];
-                    if (!empty($cc['name'])) {
-                        $entry['name'] = $cc['name'];
+                    $entry = ['email' => $cc->getEmail()];
+                    if (!empty($cc->getName())) {
+                        $entry['name'] = $cc->getName();
                     }
                     $personalization['cc'][] = $entry;
                 }
@@ -67,9 +69,9 @@ class Sendgrid extends EmailAdapter
         if (!empty($message->getBCC())) {
             foreach ($personalizations as &$personalization) {
                 foreach ($message->getBCC() as $bcc) {
-                    $entry = ['email' => $bcc['email']];
-                    if (!empty($bcc['name'])) {
-                        $entry['name'] = $bcc['name'];
+                    $entry = ['email' => $bcc->getEmail()];
+                    if (!empty($bcc->getName())) {
+                        $entry['name'] = $bcc->getName();
                     }
                     $personalization['bcc'][] = $entry;
                 }
@@ -138,16 +140,16 @@ class Sendgrid extends EmailAdapter
         if ($statusCode === 202) {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addResult($to);
+                $response->addResult($to->getEmail());
             }
         } else {
             foreach ($message->getTo() as $to) {
                 if (\is_string($result['response'])) {
-                    $response->addResult($to, $result['response']);
+                    $response->addResult($to->getEmail(), $result['response']);
                 } elseif (!\is_null($result['response']['errors'][0]['message'] ?? null)) {
-                    $response->addResult($to, $result['response']['errors'][0]['message']);
+                    $response->addResult($to->getEmail(), $result['response']['errors'][0]['message']);
                 } else {
-                    $response->addResult($to, 'Unknown error');
+                    $response->addResult($to->getEmail(), 'Unknown error');
                 }
             }
         }
