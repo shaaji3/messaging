@@ -5,7 +5,6 @@ namespace Utopia\Tests\Adapter\Email;
 use Utopia\Messaging\Adapter\Email\Resend;
 use Utopia\Messaging\Messages\Email;
 use Utopia\Messaging\Messages\Email\Attachment;
-use Utopia\Messaging\Messages\Email\Recipient;
 use Utopia\Tests\Adapter\Base;
 
 class ResendTest extends Base
@@ -29,11 +28,11 @@ class ResendTest extends Base
         $subject = 'Test Subject';
         $content = 'Test Content';
         $fromEmail = $this->testEmail;
-        $cc = [new Recipient($this->testEmail)];
-        $bcc = [new Recipient($this->testEmail, 'Test BCC')];
+        $cc = [['email' => $this->testEmail]];
+        $bcc = [['name' => 'Test BCC', 'email' => $this->testEmail]];
 
         $message = new Email(
-            to: [new Recipient($to)],
+            to: [$to],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
@@ -55,7 +54,7 @@ class ResendTest extends Base
         $fromEmail = $this->testEmail;
 
         $message = new Email(
-            to: [new Recipient($to)],
+            to: [$to],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
@@ -77,7 +76,7 @@ class ResendTest extends Base
         $replyToEmail = $this->testEmail;
 
         $message = new Email(
-            to: [new Recipient($to)],
+            to: [$to],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
@@ -100,7 +99,7 @@ class ResendTest extends Base
         $fromEmail = $this->testEmail;
 
         $message = new Email(
-            to: [new Recipient($to1), new Recipient($to2)],
+            to: [$to1, $to2],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
@@ -119,7 +118,7 @@ class ResendTest extends Base
     public function testSendEmailWithFileAttachment(): void
     {
         $message = new Email(
-            to: [new Recipient($this->testEmail)],
+            to: [$this->testEmail],
             subject: 'Test File Attachment',
             content: 'Test Content with file attachment',
             fromName: 'Test Sender',
@@ -139,7 +138,7 @@ class ResendTest extends Base
     public function testSendEmailWithStringAttachment(): void
     {
         $message = new Email(
-            to: [new Recipient($this->testEmail)],
+            to: [$this->testEmail],
             subject: 'Test String Attachment',
             content: 'Test Content with string attachment',
             fromName: 'Test Sender',
@@ -165,7 +164,7 @@ class ResendTest extends Base
         $largeContent = \str_repeat('x', 25 * 1024 * 1024 + 1);
 
         $message = new Email(
-            to: [new Recipient($this->testEmail)],
+            to: [$this->testEmail],
             subject: 'Test Oversized Attachment',
             content: 'Test Content',
             fromName: 'Test Sender',

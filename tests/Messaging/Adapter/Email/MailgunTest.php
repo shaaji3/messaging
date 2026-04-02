@@ -5,7 +5,6 @@ namespace Utopia\Tests\Adapter\Email;
 use Utopia\Messaging\Adapter\Email\Mailgun;
 use Utopia\Messaging\Messages\Email;
 use Utopia\Messaging\Messages\Email\Attachment;
-use Utopia\Messaging\Messages\Email\Recipient;
 use Utopia\Tests\Adapter\Base;
 
 class MailgunTest extends Base
@@ -25,11 +24,11 @@ class MailgunTest extends Base
         $subject = 'Test Subject';
         $content = 'Test Content';
         $fromEmail = 'sender@'.$domain;
-        $cc = [new Recipient(\getenv('TEST_CC_EMAIL'))];
-        $bcc = [new Recipient(\getenv('TEST_BCC_EMAIL'), \getenv('TEST_BCC_NAME'))];
+        $cc = [['email' => \getenv('TEST_CC_EMAIL')]];
+        $bcc = [['name' => \getenv('TEST_BCC_NAME'), 'email' => \getenv('TEST_BCC_EMAIL')]];
 
         $message = new Email(
-            to: [new Recipient($to)],
+            to: [$to],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
@@ -60,7 +59,7 @@ class MailgunTest extends Base
         $fromEmail = 'sender@'.$domain;
 
         $message = new Email(
-            to: [new Recipient($to)],
+            to: [$to],
             subject: $subject,
             content: $content,
             fromName: 'Test Sender',
