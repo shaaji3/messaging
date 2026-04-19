@@ -123,6 +123,15 @@ $messaging->send($message);
 - [ ] [PushBullet](https://www.pushbullet.com/)
 - [ ] [Pushy](https://pushy.me/)
 
+
+## Error handling notes
+
+HTTP helper responses now separate transport-level failures from provider business errors:
+
+- `statusCode` always preserves the HTTP response code returned by the provider when available.
+- `error` includes transport diagnostics prefixed with `Transport error:` when cURL fails before a provider response is received.
+- Provider/API business errors continue to be represented by provider response payloads and adapter-level result mapping.
+
 ## System Requirements
 
 Utopia Messaging requires PHP 8.0 or later. We recommend using the latest PHP version whenever possible.

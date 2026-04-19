@@ -84,23 +84,11 @@ abstract class Adapter
     ): array {
         $ch = \curl_init();
 
-        foreach ($headers as $header) {
-            if (\str_contains($header, 'application/json')) {
-                $body = \json_encode($body);
-                break;
-            }
-            if (\str_contains($header, 'application/x-www-form-urlencoded')) {
-                $body = \http_build_query($body);
-                break;
-            }
-        }
+        $body = $this->encodeBodyByContentType($headers, $body);
 
         if (!\is_null($body)) {
             \curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-
-            if (\is_string($body)) {
-                $headers[] = 'Content-Length: '.\strlen($body);
-            }
+            $headers = $this->buildRequestHeaders($headers, $body);
         }
 
         \curl_setopt_array($ch, [
@@ -114,21 +102,12 @@ abstract class Adapter
         ]);
 
         $response = \curl_exec($ch);
+        $statusCode = (int) \curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $curlError = \curl_error($ch);
 
         \curl_close($ch);
 
-        try {
-            $response = \json_decode($response, true, flags: JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            // Ignore
-        }
-
-        return [
-            'url' => $url,
-            'statusCode' => \curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
-            'response' => $response,
-            'error' => \curl_error($ch),
-        ];
+        return $this->normalizeHttpResult($url, $statusCode, $response, $curlError);
     }
 
     /**
@@ -141,7 +120,7 @@ abstract class Adapter
      *     index: int,
      *     url: string,
      *     statusCode: int,
-     *     response: array<string, mixed>|null,
+     *     response: array<string, mixed>|string|null,
      *     error: string|null
      * }>
      *
@@ -159,19 +138,8 @@ abstract class Adapter
             throw new \Exception('No URLs provided. Must provide at least one URL.');
         }
 
-        foreach ($headers as $header) {
-            if (\str_contains($header, 'application/json')) {
-                foreach ($bodies as $i => $body) {
-                    $bodies[$i] = \json_encode($body);
-                }
-                break;
-            }
-            if (\str_contains($header, 'application/x-www-form-urlencoded')) {
-                foreach ($bodies as $i => $body) {
-                    $bodies[$i] = \http_build_query($body);
-                }
-                break;
-            }
+        foreach ($bodies as $i => $body) {
+            $bodies[$i] = $this->encodeBodyByContentType($headers, $body);
         }
 
         $sh = \curl_share_init();
@@ -207,13 +175,11 @@ abstract class Adapter
         }
 
         for ($i = 0; $i < \count($urls); $i++) {
-            if (!empty($bodies[$i])) {
-                $headers[] = 'Content-Length: '.\strlen($bodies[$i]);
-            }
+            $requestHeaders = $this->buildRequestHeaders($headers, $bodies[$i] ?? null);
 
             \curl_setopt($ch, CURLOPT_URL, $urls[$i]);
             \curl_setopt($ch, CURLOPT_POSTFIELDS, $bodies[$i]);
-            \curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            \curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
             \curl_setopt($ch, CURLOPT_PRIVATE, $i);
             \curl_multi_add_handle($mh, \curl_copy_handle($ch));
         }
@@ -234,19 +200,16 @@ abstract class Adapter
             $ch = $info['handle'];
 
             $response = \curl_multi_getcontent($ch);
-
-            try {
-                $response = \json_decode($response, true, flags: JSON_THROW_ON_ERROR);
-            } catch (\JsonException) {
-                // Ignore
-            }
+            $curlError = \curl_error($ch);
 
             $responses[] = [
                 'index' => (int)\curl_getinfo($ch, CURLINFO_PRIVATE),
-                'url' => \curl_getinfo($ch, CURLINFO_EFFECTIVE_URL),
-                'statusCode' => \curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
-                'response' => $response,
-                'error' => \curl_error($ch),
+                ...$this->normalizeHttpResult(
+                    \curl_getinfo($ch, CURLINFO_EFFECTIVE_URL),
+                    (int) \curl_getinfo($ch, CURLINFO_RESPONSE_CODE),
+                    $response,
+                    $curlError,
+                ),
             ];
 
             \curl_multi_remove_handle($mh, $ch);
@@ -281,5 +244,83 @@ abstract class Adapter
         } catch (\Throwable $th) {
             throw new Exception("Error parsing phone: " . $th->getMessage());
         }
+    }
+
+    /**
+     * @param array<string> $headers
+     */
+    private function encodeBodyByContentType(array $headers, mixed $body): mixed
+    {
+        if (!\is_array($body)) {
+            return $body;
+        }
+
+        foreach ($headers as $header) {
+            if (\str_contains($header, 'application/json')) {
+                return \json_encode($body);
+            }
+
+            if (\str_contains($header, 'application/x-www-form-urlencoded')) {
+                return \http_build_query($body);
+            }
+        }
+
+        return $body;
+    }
+
+    /**
+     * @return array<string, mixed>|string|null
+     */
+    private function decodeResponse(mixed $response): array|string|null
+    {
+        if (!\is_string($response)) {
+            return null;
+        }
+
+        try {
+            return \json_decode($response, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $response;
+        }
+    }
+
+    /**
+     * @param array<string> $headers
+     * @return array<string>
+     */
+    protected function buildRequestHeaders(array $headers, mixed $body): array
+    {
+        if (\is_string($body) && $body !== '') {
+            $headers[] = 'Content-Length: '.\strlen($body);
+        }
+
+        return $headers;
+    }
+
+    /**
+     * @return array{
+     *     url: string,
+     *     statusCode: int,
+     *     response: array<string, mixed>|string|null,
+     *     error: string|null
+     * }
+     */
+    protected function normalizeHttpResult(string $url, int $statusCode, mixed $response, string $curlError): array
+    {
+        return [
+            'url' => $url,
+            'statusCode' => $statusCode,
+            'response' => $this->decodeResponse($response),
+            'error' => $this->formatError($response, $curlError),
+        ];
+    }
+
+    private function formatError(mixed $response, string $curlError): ?string
+    {
+        if ($response === false && $curlError !== '') {
+            return 'Transport error: '.$curlError;
+        }
+
+        return $curlError === '' ? null : $curlError;
     }
 }
