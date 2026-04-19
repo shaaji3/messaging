@@ -62,6 +62,36 @@ $messaging = new Telesign('YOUR_USERNAME', 'YOUR_PASSWORD');
 $messaging->send($message);
 ```
 
+### SMS Failover (Geography / Provider)
+
+```php
+<?php
+
+use Utopia\Messaging\Adapter\FailoverSMS;
+use Utopia\Messaging\Adapter\SMS\Telesign;
+use Utopia\Messaging\Adapter\SMS\Twilio;
+use Utopia\Messaging\Messages\SMS;
+
+$message = new SMS(
+    to: ['+447700900123'], // UK recipient
+    content: 'Service update'
+);
+
+$messaging = new FailoverSMS([
+    new Telesign('EU_USERNAME', 'EU_PASSWORD'), // Primary for EU routes
+    new Twilio('GLOBAL_ACCOUNT_SID', 'GLOBAL_AUTH_TOKEN'), // Fallback provider
+]);
+
+$response = $messaging->send($message);
+```
+
+Behavior notes:
+- Adapters are attempted in the order provided.
+- Fallback happens only when an attempt throws or returns `deliveredTo: 0`.
+- The first attempt with `deliveredTo > 0` stops failover and becomes the final `deliveredTo`.
+- `results` keep original adapter result fields and add `adapter` + `attempt` metadata per entry.
+- For thrown exceptions, an additional failure result is recorded with `failureType: "transport_exception"` and `retryable: false`.
+
 ## Push
 
 ```php
