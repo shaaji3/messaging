@@ -52,6 +52,11 @@ class RouteResolverTest extends TestCase
             $highPriorityPush,
             $resolver->resolve(new Push(['token-1'], title: 'Hi', priority: Priority::HIGH))
         );
+
+        $this->assertSame(
+            $highPriorityPush,
+            $resolver->resolve(new Push(['token-2'], title: 'Hi', priority: Priority::HIGH), ['priority' => 'HIGH'])
+        );
     }
 
     public function testNotifierSendsWithResolvedAdapter(): void
@@ -74,6 +79,37 @@ class RouteResolverTest extends TestCase
         $this->expectException(UnknownRouteException::class);
 
         $resolver->resolve(new SMS(['+12025550139'], 'No route'));
+    }
+
+    public function testConditionalResolverUsesFallbackResolver(): void
+    {
+        $fallback = new TestAdapter('fallback', SMS::class);
+        $fallbackResolver = new StaticRouteResolver([
+            SMS::class => $fallback,
+        ]);
+
+        $resolver = (new ConditionalRouteResolver($fallbackResolver))
+            ->addRule(SMS::class, new TestAdapter('staging', SMS::class), ['environment' => 'staging']);
+
+        $this->assertSame(
+            $fallback,
+            $resolver->resolve(new SMS(['+12025550139'], 'fallback-route'), ['environment' => 'production'])
+        );
+    }
+
+    public function testConditionalResolverSupportsPredicateRule(): void
+    {
+        $predicateAdapter = new TestAdapter('predicate', SMS::class);
+        $resolver = (new ConditionalRouteResolver())
+            ->addRule(SMS::class, $predicateAdapter, [
+                'predicate' => fn (SMS $message, array $context): bool => str_contains($message->getContent(), 'vip')
+                    && ($context['environment'] ?? null) === 'production',
+            ]);
+
+        $this->assertSame(
+            $predicateAdapter,
+            $resolver->resolve(new SMS(['+12025550139'], 'vip-message'), ['environment' => 'production'])
+        );
     }
 }
 

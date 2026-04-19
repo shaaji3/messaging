@@ -19,6 +19,7 @@ composer require utopia-php/messaging
 ## Routing with Notifier
 
 Use `Notifier` with a route resolver when you want runtime-based delivery decisions while keeping calling code simple.
+Routing is fully opt-in, so existing direct adapter usage remains unchanged.
 
 ```php
 <?php

@@ -9,6 +9,8 @@ use Utopia\Messaging\Priority;
 
 class ConditionalRouteResolver implements RouteResolverInterface
 {
+    private static ?Adapter $countryCodeAdapter = null;
+
     /**
      * @var array<int, array{messageClass: string, adapter: Adapter, when: array<string, mixed>}>
      */
@@ -57,6 +59,12 @@ class ConditionalRouteResolver implements RouteResolverInterface
      */
     private function matches(Message $message, array $context, array $conditions): bool
     {
+        if (isset($conditions['predicate']) && \is_callable($conditions['predicate'])) {
+            if (!(bool) \call_user_func($conditions['predicate'], $message, $context)) {
+                return false;
+            }
+        }
+
         if (isset($conditions['environment']) && !$this->matchesValue($context['environment'] ?? null, $conditions['environment'])) {
             return false;
         }
@@ -78,11 +86,11 @@ class ConditionalRouteResolver implements RouteResolverInterface
      */
     private function matchesValue(mixed $actual, mixed $expected): bool
     {
-        $actual = $this->normalizeComparableValue($actual);
+        $actualValues = $this->normalizeComparableValues($actual);
 
         if (\is_array($expected)) {
             foreach ($expected as $value) {
-                if ($actual === $this->normalizeComparableValue($value)) {
+                if ($this->matchesAny($actualValues, $this->normalizeComparableValues($value))) {
                     return true;
                 }
             }
@@ -90,16 +98,36 @@ class ConditionalRouteResolver implements RouteResolverInterface
             return false;
         }
 
-        return $actual === $this->normalizeComparableValue($expected);
+        return $this->matchesAny($actualValues, $this->normalizeComparableValues($expected));
     }
 
-    private function normalizeComparableValue(mixed $value): mixed
+    /**
+     * @return array<int, string|int|bool|null>
+     */
+    private function normalizeComparableValues(mixed $value): array
     {
         if ($value instanceof Priority) {
-            return $value->name;
+            return [$value->name, $value->value];
         }
 
-        return $value;
+        return [$value];
+    }
+
+    /**
+     * @param array<int, string|int|bool|null> $left
+     * @param array<int, string|int|bool|null> $right
+     */
+    private function matchesAny(array $left, array $right): bool
+    {
+        foreach ($left as $leftValue) {
+            foreach ($right as $rightValue) {
+                if ($leftValue === $rightValue) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -140,29 +168,43 @@ class ConditionalRouteResolver implements RouteResolverInterface
         $phone = $recipients[0];
 
         try {
-            return (string) (new class extends Adapter {
-                public function getName(): string
-                {
-                    return 'RoutingCountryCodeHelper';
-                }
-
-                public function getType(): string
-                {
-                    return 'helper';
-                }
-
-                public function getMessageType(): string
-                {
-                    return Message::class;
-                }
-
-                public function getMaxMessagesPerRequest(): int
-                {
-                    return PHP_INT_MAX;
-                }
-            })->getCountryCode($phone);
+            return (string) self::getCountryCodeAdapter()->getCountryCode($phone);
         } catch (\Throwable) {
             return CallingCode::fromPhoneNumber($phone);
         }
+    }
+
+    private static function getCountryCodeAdapter(): Adapter
+    {
+        if (!\is_null(self::$countryCodeAdapter)) {
+            return self::$countryCodeAdapter;
+        }
+
+        self::$countryCodeAdapter = new RoutingCountryCodeAdapter();
+
+        return self::$countryCodeAdapter;
+    }
+}
+
+class RoutingCountryCodeAdapter extends Adapter
+{
+    public function getName(): string
+    {
+        return 'RoutingCountryCodeHelper';
+    }
+
+    public function getType(): string
+    {
+        return 'helper';
+    }
+
+    public function getMessageType(): string
+    {
+        return Message::class;
+    }
+
+    public function getMaxMessagesPerRequest(): int
+    {
+        return PHP_INT_MAX;
     }
 }
