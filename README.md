@@ -15,6 +15,32 @@ Install using composer:
 composer require utopia-php/messaging
 ```
 
+## Response Payload
+
+Every adapter returns a normalized response payload:
+
+```php
+[
+    'deliveredTo' => 1,
+    'type' => 'sms',
+    'results' => [
+        [
+            'recipient' => '+12025550139',
+            'status' => 'failure', // or "success"
+            'error' => 'Rate limit reached',
+
+            // Optional normalized metadata:
+            'provider' => 'Twilio',
+            'providerCode' => 20429,
+            'retryable' => true,
+            'rawStatusCode' => 429,
+        ],
+    ],
+]
+```
+
+Backward compatibility note: `recipient`, `status`, and `error` are always present. Metadata fields are optional and only included when available.
+
 ## Email 
 
 ```php

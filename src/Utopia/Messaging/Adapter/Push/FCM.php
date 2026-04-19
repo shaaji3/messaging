@@ -163,18 +163,47 @@ class FCM extends PushAdapter
         foreach ($results as $result) {
             if ($result['statusCode'] === 200) {
                 $response->incrementDeliveredTo();
-                $response->addResult($message->getTo()[$result['index']]);
+                $response->addSuccessResult(
+                    recipient: $message->getTo()[$result['index']],
+                    provider: $this->getName(),
+                    rawStatusCode: $result['statusCode']
+                );
             } else {
+                $providerCode = $result['response']['error']['status'] ?? null;
                 $error =
-                    ($result['response']['error']['status'] ?? null) === 'UNREGISTERED'
-                    || ($result['response']['error']['status'] ?? null) === 'NOT_FOUND'
+                    $providerCode === 'UNREGISTERED'
+                    || $providerCode === 'NOT_FOUND'
                         ? $this->getExpiredErrorMessage()
                         : $result['response']['error']['message'] ?? 'Unknown error';
 
-                $response->addResult($message->getTo()[$result['index']], $error);
+                $response->addFailureResult(
+                    recipient: $message->getTo()[$result['index']],
+                    error: $error,
+                    provider: $this->getName(),
+                    providerCode: \is_scalar($providerCode) ? $providerCode : null,
+                    retryable: $this->isRetryable($result['statusCode'], \is_scalar($providerCode) ? (string)$providerCode : null),
+                    rawStatusCode: $result['statusCode']
+                );
             }
         }
 
         return $response->toArray();
+    }
+
+    private function isRetryable(int $statusCode, ?string $providerCode): bool
+    {
+        if ($statusCode === 429 || $statusCode >= 500) {
+            return true;
+        }
+
+        if (\in_array($providerCode, ['UNAVAILABLE', 'INTERNAL', 'RESOURCE_EXHAUSTED'], true)) {
+            return true;
+        }
+
+        if (\in_array($providerCode, ['UNREGISTERED', 'NOT_FOUND', 'INVALID_ARGUMENT', 'UNAUTHENTICATED', 'PERMISSION_DENIED', 'THIRD_PARTY_AUTH_ERROR', 'SENDER_ID_MISMATCH'], true)) {
+            return false;
+        }
+
+        return false;
     }
 }

@@ -9,7 +9,7 @@ class Response
     private string $type;
 
     /**
-     * @var array<array<string, string>>
+     * @var array<array<string, mixed>>
      */
     private array $results;
 
@@ -46,7 +46,7 @@ class Response
     }
 
     /**
-     * @return array<array<string, string>>
+     * @return array<array<string, mixed>>
      */
     public function getDetails(): array
     {
@@ -55,11 +55,80 @@ class Response
 
     public function addResult(string $recipient, string $error = ''): void
     {
-        $this->results[] = [
+        if (empty($error)) {
+            $this->addSuccessResult($recipient);
+            return;
+        }
+
+        $this->addFailureResult($recipient, $error);
+    }
+
+    public function addSuccessResult(
+        string $recipient,
+        ?string $provider = null,
+        ?int $rawStatusCode = null
+    ): void {
+        $this->results[] = $this->createResult(
+            recipient: $recipient,
+            status: 'success',
+            error: '',
+            provider: $provider,
+            rawStatusCode: $rawStatusCode
+        );
+    }
+
+    public function addFailureResult(
+        string $recipient,
+        string $error,
+        ?string $provider = null,
+        string|int|null $providerCode = null,
+        ?bool $retryable = null,
+        ?int $rawStatusCode = null
+    ): void {
+        $this->results[] = $this->createResult(
+            recipient: $recipient,
+            status: 'failure',
+            error: $error,
+            provider: $provider,
+            providerCode: $providerCode,
+            retryable: $retryable,
+            rawStatusCode: $rawStatusCode
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function createResult(
+        string $recipient,
+        string $status,
+        string $error,
+        ?string $provider = null,
+        string|int|null $providerCode = null,
+        ?bool $retryable = null,
+        ?int $rawStatusCode = null
+    ): array
+    {
+        $result = [
             'recipient' => $recipient,
-            'status' => empty($error) ? 'success' : 'failure',
+            'status' => $status,
             'error' => $error,
         ];
+
+        if (!\is_null($provider)) {
+            $result['provider'] = $provider;
+        }
+        if (!\is_null($providerCode)) {
+            $result['providerCode'] = $providerCode;
+        }
+        if (!\is_null($retryable)) {
+            $result['retryable'] = $retryable;
+        }
+        if (!\is_null($rawStatusCode)) {
+            $result['rawStatusCode'] = $rawStatusCode;
+        }
+
+        return $result;
     }
 
     /**

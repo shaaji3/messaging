@@ -56,15 +56,46 @@ class Twilio extends SMSAdapter
 
         if ($result['statusCode'] >= 200 && $result['statusCode'] < 300) {
             $response->setDeliveredTo(1);
-            $response->addResult($message->getTo()[0]);
+            $response->addSuccessResult(
+                recipient: $message->getTo()[0],
+                provider: $this->getName(),
+                rawStatusCode: $result['statusCode']
+            );
         } else {
+            $providerCode = $result['response']['code'] ?? null;
+            $errorMessage = $result['response']['message'] ?? 'Unknown error';
             if (!\is_null($result['response']['message'] ?? null)) {
-                $response->addResult($message->getTo()[0], $result['response']['message']);
-            } else {
-                $response->addResult($message->getTo()[0], 'Unknown error');
+                $errorMessage = $result['response']['message'];
             }
+
+            $response->addFailureResult(
+                recipient: $message->getTo()[0],
+                error: $errorMessage,
+                provider: $this->getName(),
+                providerCode: \is_scalar($providerCode) ? $providerCode : null,
+                retryable: $this->isRetryable(
+                    statusCode: $result['statusCode'],
+                    errorMessage: $errorMessage,
+                    providerCode: \is_scalar($providerCode) ? (string)$providerCode : null
+                ),
+                rawStatusCode: $result['statusCode']
+            );
         }
 
         return $response->toArray();
+    }
+
+    private function isRetryable(int $statusCode, string $errorMessage, ?string $providerCode): bool
+    {
+        if ($statusCode === 429 || $statusCode >= 500) {
+            return true;
+        }
+
+        if (\in_array($providerCode, ['20003', '21211', '21614'], true)) {
+            return false;
+        }
+
+        return !\str_contains(\strtolower($errorMessage), 'auth')
+            && !\str_contains(\strtolower($errorMessage), 'invalid');
     }
 }
