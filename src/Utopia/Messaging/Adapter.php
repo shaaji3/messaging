@@ -288,7 +288,7 @@ abstract class Adapter
      * @param array<string> $headers
      * @return array<string>
      */
-    protected function buildRequestHeaders(array $headers, mixed $body): array
+    private function buildRequestHeaders(array $headers, mixed $body): array
     {
         if (\is_string($body) && $body !== '') {
             $headers[] = 'Content-Length: '.\strlen($body);
@@ -305,7 +305,7 @@ abstract class Adapter
      *     error: string|null
      * }
      */
-    protected function normalizeHttpResult(string $url, int $statusCode, mixed $response, string $curlError): array
+    private function normalizeHttpResult(string $url, int $statusCode, mixed $response, string $curlError): array
     {
         return [
             'url' => $url,

@@ -2,9 +2,11 @@
 
 namespace Utopia\Tests\Adapter;
 
+use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use Utopia\Messaging\Adapter;
 
-class AdapterHttpHelpersTest extends Base
+class AdapterHttpHelpersTest extends TestCase
 {
     private Adapter $adapter;
 
@@ -32,39 +34,17 @@ class AdapterHttpHelpersTest extends Base
             {
                 return 1;
             }
-
-            /**
-             * @param array<string> $headers
-             * @return array<string>
-             */
-            public function callBuildRequestHeaders(array $headers, mixed $body): array
-            {
-                return $this->buildRequestHeaders($headers, $body);
-            }
-
-            /**
-             * @return array{
-             *     url: string,
-             *     statusCode: int,
-             *     response: array<string, mixed>|string|null,
-             *     error: string|null
-             * }
-             */
-            public function callNormalizeHttpResult(string $url, int $statusCode, mixed $response, string $curlError): array
-            {
-                return $this->normalizeHttpResult($url, $statusCode, $response, $curlError);
-            }
         };
     }
 
     public function testNormalizeHttpResultPreservesHttpStatus(): void
     {
-        $result = $this->adapter->callNormalizeHttpResult(
+        $result = $this->invokeAdapterMethod('normalizeHttpResult', [
             'https://example.test/messages',
             429,
             '{"error":"Too Many Requests"}',
-            ''
-        );
+            '',
+        ]);
 
         $this->assertSame(429, $result['statusCode']);
         $this->assertSame('Too Many Requests', $result['response']['error']);
@@ -73,12 +53,12 @@ class AdapterHttpHelpersTest extends Base
 
     public function testNormalizeHttpResultPreservesTransportErrors(): void
     {
-        $result = $this->adapter->callNormalizeHttpResult(
+        $result = $this->invokeAdapterMethod('normalizeHttpResult', [
             'https://example.test/messages',
             0,
             false,
-            'Could not resolve host: example.test'
-        );
+            'Could not resolve host: example.test',
+        ]);
 
         $this->assertSame(0, $result['statusCode']);
         $this->assertNull($result['response']);
@@ -89,13 +69,25 @@ class AdapterHttpHelpersTest extends Base
     {
         $headers = ['Content-Type: application/json'];
 
-        $first = $this->adapter->callBuildRequestHeaders($headers, '{"a":1}');
-        $second = $this->adapter->callBuildRequestHeaders($headers, '{"a":1}');
+        $first = $this->invokeAdapterMethod('buildRequestHeaders', [$headers, '{"a":1}']);
+        $second = $this->invokeAdapterMethod('buildRequestHeaders', [$headers, '{"a":1}']);
 
         $this->assertCount(2, $first);
         $this->assertCount(2, $second);
         $this->assertSame('Content-Length: 7', $first[1]);
         $this->assertSame('Content-Length: 7', $second[1]);
         $this->assertCount(1, $headers);
+    }
+
+    /**
+     * @param array<mixed> $arguments
+     * @return mixed
+     */
+    private function invokeAdapterMethod(string $method, array $arguments): mixed
+    {
+        $reflection = new ReflectionMethod($this->adapter, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invokeArgs($this->adapter, $arguments);
     }
 }
