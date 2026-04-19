@@ -15,6 +15,88 @@ Install using composer:
 composer require utopia-php/messaging
 ```
 
+
+## Routing with Notifier
+
+Use `Notifier` with a route resolver when you want runtime-based delivery decisions while keeping calling code simple.
+Routing is fully opt-in, so existing direct adapter usage remains unchanged.
+
+```php
+<?php
+
+use Utopia\Messaging\Notifier;
+use Utopia\Messaging\Routing\StaticRouteResolver;
+use Utopia\Messaging\Messages\Email;
+use Utopia\Messaging\Adapter\Email\Sendgrid;
+
+$resolver = new StaticRouteResolver([
+    Email::class => new Sendgrid('PROD_SENDGRID_KEY'),
+]);
+
+$notifier = new Notifier($resolver);
+$notifier->send(new Email(
+    to: ['team@appwrite.io'],
+    subject: 'Hello from resolver',
+    content: '<h1>Hello</h1>',
+    fromName: 'Appwrite',
+    fromEmail: 'no-reply@appwrite.io'
+));
+```
+
+### Production vs staging routes
+
+```php
+<?php
+
+use Utopia\Messaging\Routing\ConditionalRouteResolver;
+use Utopia\Messaging\Routing\StaticRouteResolver;
+use Utopia\Messaging\Messages\SMS;
+use Utopia\Messaging\Adapter\SMS\Twilio;
+use Utopia\Messaging\Adapter\SMS\Mock;
+
+$static = (new StaticRouteResolver())
+    ->set(SMS::class, new Twilio('SID', 'TOKEN')); // fallback for prod
+
+$resolver = (new ConditionalRouteResolver($static))
+    ->addRule(
+        SMS::class,
+        new Mock('user', 'key'),
+        ['environment' => 'staging']
+    );
+```
+
+### High-priority push routed to APNS first, then FCM fallback
+
+```php
+<?php
+
+use Utopia\Messaging\Notifier;
+use Utopia\Messaging\Priority;
+use Utopia\Messaging\Messages\Push;
+use Utopia\Messaging\Adapter\Push\APNS;
+use Utopia\Messaging\Adapter\Push\FCM;
+use Utopia\Messaging\Routing\ConditionalRouteResolver;
+
+$apns = new APNS('key-id', 'team-id', 'bundle-id', '/path/to/key.p8');
+$fcm = new FCM('{"type":"service_account"}');
+
+$resolver = (new ConditionalRouteResolver())
+    ->addRule(Push::class, $apns, [
+        'environment' => 'production',
+        'priority' => Priority::HIGH,
+    ])
+    ->addRule(Push::class, $fcm); // default
+
+$notifier = new Notifier($resolver);
+
+try {
+    $notifier->send($message, ['environment' => 'production']);
+} catch (\Throwable) {
+    // Optional delivery fallback on provider failure.
+    $fcm->send($message);
+}
+```
+
 ## Email 
 
 ```php
