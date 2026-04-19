@@ -56,11 +56,7 @@ class Twilio extends SMSAdapter
 
         if ($result['statusCode'] >= 200 && $result['statusCode'] < 300) {
             $response->setDeliveredTo(1);
-            $response->addSuccessResult(
-                recipient: $message->getTo()[0],
-                provider: $this->getName(),
-                rawStatusCode: $result['statusCode']
-            );
+            $response->addResult($message->getTo()[0]);
         } else {
             $providerCode = $result['response']['code'] ?? null;
             $errorMessage = $result['response']['message'] ?? 'Unknown error';
@@ -75,7 +71,6 @@ class Twilio extends SMSAdapter
                 providerCode: \is_scalar($providerCode) ? $providerCode : null,
                 retryable: $this->isRetryable(
                     statusCode: $result['statusCode'],
-                    errorMessage: $errorMessage,
                     providerCode: \is_scalar($providerCode) ? (string)$providerCode : null
                 ),
                 rawStatusCode: $result['statusCode']
@@ -85,7 +80,7 @@ class Twilio extends SMSAdapter
         return $response->toArray();
     }
 
-    private function isRetryable(int $statusCode, string $errorMessage, ?string $providerCode): bool
+    private function isRetryable(int $statusCode, ?string $providerCode): bool
     {
         if ($statusCode === 429 || $statusCode >= 500) {
             return true;
@@ -95,7 +90,6 @@ class Twilio extends SMSAdapter
             return false;
         }
 
-        return !\str_contains(\strtolower($errorMessage), 'auth')
-            && !\str_contains(\strtolower($errorMessage), 'invalid');
+        return false;
     }
 }

@@ -140,11 +140,7 @@ class Sendgrid extends EmailAdapter
         if ($statusCode === 202) {
             $response->setDeliveredTo(\count($message->getTo()));
             foreach ($message->getTo() as $to) {
-                $response->addSuccessResult(
-                    recipient: $to['email'],
-                    provider: $this->getName(),
-                    rawStatusCode: $statusCode
-                );
+                $response->addResult($to['email']);
             }
         } else {
             $providerCode = $result['response']['errors'][0]['field'] ?? null;
@@ -190,6 +186,6 @@ class Sendgrid extends EmailAdapter
             return false;
         }
 
-        return true;
+        return false;
     }
 }

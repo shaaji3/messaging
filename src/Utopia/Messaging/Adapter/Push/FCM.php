@@ -163,11 +163,7 @@ class FCM extends PushAdapter
         foreach ($results as $result) {
             if ($result['statusCode'] === 200) {
                 $response->incrementDeliveredTo();
-                $response->addSuccessResult(
-                    recipient: $message->getTo()[$result['index']],
-                    provider: $this->getName(),
-                    rawStatusCode: $result['statusCode']
-                );
+                $response->addResult($message->getTo()[$result['index']]);
             } else {
                 $providerCode = $result['response']['error']['status'] ?? null;
                 $error =
