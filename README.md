@@ -85,6 +85,13 @@ $messaging = new FailoverSMS([
 $response = $messaging->send($message);
 ```
 
+Behavior notes:
+- Adapters are attempted in the order provided.
+- Fallback happens only when an attempt throws or returns `deliveredTo: 0`.
+- The first attempt with `deliveredTo > 0` stops failover and becomes the final `deliveredTo`.
+- `results` keep original adapter result fields and add `adapter` + `attempt` metadata per entry.
+- For thrown exceptions, an additional failure result is recorded with `failureType: "transport_exception"` and `retryable: false`.
+
 ## Push
 
 ```php

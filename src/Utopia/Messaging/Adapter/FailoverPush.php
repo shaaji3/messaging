@@ -6,30 +6,14 @@ use Utopia\Messaging\Messages\Push as PushMessage;
 
 class FailoverPush extends Push
 {
-    /**
-     * @var array<Push>
-     */
-    private array $adapters;
+    use Failover;
 
     /**
      * @param  array<Push>  $adapters
      */
     public function __construct(array $adapters)
     {
-        if (empty($adapters)) {
-            throw new \InvalidArgumentException('FailoverPush requires at least one adapter.');
-        }
-
-        $type = $adapters[0]->getType();
-        $messageType = $adapters[0]->getMessageType();
-
-        foreach ($adapters as $adapter) {
-            if ($adapter->getType() !== $type || $adapter->getMessageType() !== $messageType) {
-                throw new \InvalidArgumentException('All adapters must share the same type and message type.');
-            }
-        }
-
-        $this->adapters = \array_values($adapters);
+        $this->setAdapters($adapters, 'FailoverPush');
     }
 
     public function getName(): string
@@ -39,7 +23,7 @@ class FailoverPush extends Push
 
     public function getMaxMessagesPerRequest(): int
     {
-        return $this->adapters[0]->getMaxMessagesPerRequest();
+        return $this->getMaxMessagesPerRequestFromAdapters();
     }
 
     /**
@@ -47,40 +31,6 @@ class FailoverPush extends Push
      */
     protected function process(PushMessage $message): array
     {
-        $results = [];
-
-        foreach ($this->adapters as $index => $adapter) {
-            $attempt = $index + 1;
-
-            try {
-                $response = $adapter->send($message);
-                foreach ($response['results'] as $result) {
-                    $result['adapter'] = $adapter->getName();
-                    $result['attempt'] = $attempt;
-                    $results[] = $result;
-                }
-
-                if (($response['deliveredTo'] ?? 0) > 0) {
-                    return [
-                        'deliveredTo' => $response['deliveredTo'],
-                        'type' => $this->getType(),
-                        'results' => $results,
-                    ];
-                }
-            } catch (\Throwable $error) {
-                $results[] = [
-                    'status' => 'failure',
-                    'error' => $error->getMessage(),
-                    'adapter' => $adapter->getName(),
-                    'attempt' => $attempt,
-                ];
-            }
-        }
-
-        return [
-            'deliveredTo' => 0,
-            'type' => $this->getType(),
-            'results' => $results,
-        ];
+        return $this->processFailover($message);
     }
 }
