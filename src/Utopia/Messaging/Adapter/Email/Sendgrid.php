@@ -143,17 +143,49 @@ class Sendgrid extends EmailAdapter
                 $response->addResult($to['email']);
             }
         } else {
+            $providerCode = $result['response']['errors'][0]['field'] ?? null;
             foreach ($message->getTo() as $to) {
                 if (\is_string($result['response'])) {
-                    $response->addResult($to['email'], $result['response']);
+                    $errorMessage = $result['response'];
                 } elseif (!\is_null($result['response']['errors'][0]['message'] ?? null)) {
-                    $response->addResult($to['email'], $result['response']['errors'][0]['message']);
+                    $errorMessage = $result['response']['errors'][0]['message'];
                 } else {
-                    $response->addResult($to['email'], 'Unknown error');
+                    $errorMessage = 'Unknown error';
                 }
+
+                $response->addFailureResult(
+                    recipient: $to['email'],
+                    error: $errorMessage,
+                    provider: $this->getName(),
+                    providerCode: \is_scalar($providerCode) ? $providerCode : null,
+                    retryable: $this->isRetryable($statusCode, $errorMessage),
+                    rawStatusCode: $statusCode
+                );
             }
         }
 
         return $response->toArray();
+    }
+
+    private function isRetryable(int $statusCode, string $errorMessage): bool
+    {
+        if ($statusCode === 429 || $statusCode >= 500) {
+            return true;
+        }
+
+        if (\in_array($statusCode, [401, 403], true)) {
+            return false;
+        }
+
+        $errorMessage = \strtolower($errorMessage);
+        if (\str_contains($errorMessage, 'invalid')
+            || \str_contains($errorMessage, 'recipient')
+            || \str_contains($errorMessage, 'unauthorized')
+            || \str_contains($errorMessage, 'forbidden')
+        ) {
+            return false;
+        }
+
+        return false;
     }
 }

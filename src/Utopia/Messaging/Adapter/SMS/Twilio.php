@@ -58,13 +58,38 @@ class Twilio extends SMSAdapter
             $response->setDeliveredTo(1);
             $response->addResult($message->getTo()[0]);
         } else {
+            $providerCode = $result['response']['code'] ?? null;
+            $errorMessage = $result['response']['message'] ?? 'Unknown error';
             if (!\is_null($result['response']['message'] ?? null)) {
-                $response->addResult($message->getTo()[0], $result['response']['message']);
-            } else {
-                $response->addResult($message->getTo()[0], 'Unknown error');
+                $errorMessage = $result['response']['message'];
             }
+
+            $response->addFailureResult(
+                recipient: $message->getTo()[0],
+                error: $errorMessage,
+                provider: $this->getName(),
+                providerCode: \is_scalar($providerCode) ? $providerCode : null,
+                retryable: $this->isRetryable(
+                    statusCode: $result['statusCode'],
+                    providerCode: \is_scalar($providerCode) ? (string)$providerCode : null
+                ),
+                rawStatusCode: $result['statusCode']
+            );
         }
 
         return $response->toArray();
+    }
+
+    private function isRetryable(int $statusCode, ?string $providerCode): bool
+    {
+        if ($statusCode === 429 || $statusCode >= 500) {
+            return true;
+        }
+
+        if (\in_array($providerCode, ['20003', '21211', '21614'], true)) {
+            return false;
+        }
+
+        return false;
     }
 }
